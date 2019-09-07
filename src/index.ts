@@ -3,7 +3,7 @@ import { Logger } from 'peeler-js';
 import genhandleRes, { Res, Config, Params } from './handleRes';
 
 const logger = new Logger({
-  logPrefix: 'Request-Maker',
+  logPrefix: 'Ajax-Maker',
   debug: true,
   logLevel: 'info'
 });

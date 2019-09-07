@@ -2,7 +2,7 @@
 
 ## API
 ```typescript
-  import Request from 'request-maker';
+  import Request from 'ajax-maker';
 
   type CodeMap = {
     suc_code?: string | number | boolean;

@@ -1,7 +1,7 @@
 import { isType, Logger } from 'peeler-js';
 
 const logger = new Logger({
-  logPrefix: 'Request-Maker-handleRes',
+  logPrefix: 'Ajax-Maker-handleRes',
   debug: true,
   logLevel: 'info'
 });

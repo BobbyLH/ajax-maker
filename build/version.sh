@@ -1,7 +1,7 @@
 #! /bin/bash
 
 iterate=$1
-name="[REQUEST-MAKER]"
+name="[AJAX-MAKER]"
 dot="."
 
 updateVersion () {

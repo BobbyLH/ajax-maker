@@ -1,6 +1,6 @@
 #! /bin/bash
 
-name="[REQUEST-MAKER]"
+name="[AJAX-MAKER]"
 
 if [ $? -eq 0 ]
 then
