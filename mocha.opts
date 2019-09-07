@@ -1,0 +1,2 @@
+--reporter spec
+--require ts-node/register src/**/*.ts

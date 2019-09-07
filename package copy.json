@@ -1,0 +1,50 @@
+{
+  "name": "@hupu/request",
+  "version": "0.0.7",
+  "description": "Hupu FE ajax request library base on axios(https://github.com/axios/axios)",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "webpack-dashboard -p 6301 -- node demo/server.js",
+    "test": "mocha --opts mocha.opts",
+    "release": "npm run build:version",
+    "build": "npm run lint:fix && npm run lint && npm test && rm -rf dist && npm run build:tsc && npm run build:publish",
+    "build:tsc": "tsc -b",
+    "build:publish": "./build/publish.sh",
+    "build:version": "./build/version.sh",
+    "lint": "eslint src/ --ext .ts --ext .tsx",
+    "lint:fix": "eslint src/ --ext .ts --ext .tsx --fix"
+  },
+  "keywords": [
+    "ajax",
+    "axios",
+    "request"
+  ],
+  "author": "bobby.li",
+  "license": "MIT",
+  "dependencies": {
+    "axios": "^0.19.0",
+    "peeler-js": "^0.1.6"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.5.5",
+    "@babel/preset-env": "^7.5.5",
+    "@types/chai": "^4.2.1",
+    "@types/mocha": "^5.2.7",
+    "@typescript-eslint/eslint-plugin": "^2.1.0",
+    "@typescript-eslint/parser": "^2.1.0",
+    "babel-loader": "^8.0.6",
+    "babel-plugin-import": "^1.12.1",
+    "chai": "^4.2.0",
+    "eslint": "^6.3.0",
+    "express": "^4.17.1",
+    "html-webpack-plugin": "^3.2.0",
+    "mocha": "^6.2.0",
+    "ts-loader": "^6.0.4",
+    "ts-node": "^8.3.0",
+    "typescript": "^3.6.2",
+    "webpack": "^4.39.3",
+    "webpack-cli": "^3.3.8",
+    "webpack-dashboard": "^3.1.0",
+    "webpack-dev-middleware": "^3.7.1"
+  }
+}
