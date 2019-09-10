@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios, { AxiosRequestConfig } from 'axios';
 import { Logger } from 'peeler-js';
 import genhandleRes, { Res, Config, Params } from './handleRes';
 
@@ -12,10 +12,7 @@ type AnyObj = {
   [propName: string]: any;
 };
 
-type Options = {
-  baseURL: string,
-  withCredentials?: boolean;
-  headers?: AnyObj;
+export interface Options extends AxiosRequestConfig {
   success?: (res: Res) => any;
   fail?: (res: Res) => any;
   login?: (res: Res) => any;
@@ -39,7 +36,7 @@ type ErrorRes = {
   data: ErrorData;
 };
 
-interface PromiseWrapper {
+export interface PromiseWrapper {
   success: (cb: (res: Res) => any) => PromiseWrapper;
   login: (cb: (res: Res) => any) => PromiseWrapper;
   fail: (cb: (res: Res) => any) => PromiseWrapper;
