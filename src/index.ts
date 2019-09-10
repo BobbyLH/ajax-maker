@@ -17,7 +17,7 @@ export interface Options extends AxiosRequestConfig {
   fail?: (res: Res) => any;
   login?: (res: Res) => any;
   error?: (res: ErrorRes) => any;
-};
+}
 
 type FactoryType = 'success' | 'fail' | 'error' | 'login';
 
