@@ -17,9 +17,9 @@
 
   const config: Config = {
     codeMap: {
-      suc_code: 200;
-      err_code: -1;
-      login_code: '40100';
+      suc_code: 200,
+      err_code: -1,
+      login_code: '40100'
     },
     codeField: 'code'
   }
