@@ -104,8 +104,6 @@ export class Request {
     });
 
     const factory = (type: FactoryType) => {
-      const promise = type === 'error' ? promiseRej : promiseRes;
-      
       if (type === 'error') {
         // error reload function defination
         promiseWrapper[type] = function (cb: (res: ErrorRes) => any) {
@@ -121,7 +119,11 @@ export class Request {
 
       promiseWrapper[type] = promiseWrapper[type].bind(promiseWrapper);
 
-      return (res: Res | ErrorRes) => promise(promiseWrapper[`${type}_cb`] ? promiseWrapper[`${type}_cb`](res) : res);
+      return (res: Res | ErrorRes) => {
+        if (type === 'error' && !promiseWrapper[`${type}_cb`]) return promiseRej(res);
+
+        return promiseRes(promiseWrapper[`${type}_cb`] ? promiseWrapper[`${type}_cb`](res) : res)
+      };
     };
 
     const callbacks = {
