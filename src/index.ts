@@ -122,7 +122,7 @@ export class Request {
       return (res: Res | ErrorRes) => {
         if (type === 'error' && !promiseWrapper[`${type}_cb`]) return promiseRej(res);
 
-        return promiseRes(promiseWrapper[`${type}_cb`] ? promiseWrapper[`${type}_cb`](res) : res)
+        return promiseRes(promiseWrapper[`${type}_cb`] ? promiseWrapper[`${type}_cb`](res) : res);
       };
     };
 
