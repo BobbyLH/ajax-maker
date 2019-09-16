@@ -1,4 +1,4 @@
-import axios, { AxiosRequestConfig } from 'axios';
+import axios, { AxiosStatic, AxiosRequestConfig } from 'axios';
 import { Logger } from 'peeler-js';
 import genhandleRes, { Res, Config, Params } from './handleRes';
 
@@ -48,11 +48,13 @@ export interface PromiseWrapper {
 
 export class Request {
   private _handleRes: (params: Params) => any;
+  public axios: AxiosStatic;
 
   constructor (config?: Config) {
     this._handleRes = genhandleRes(config);
     this.setting = this.setting.bind(this);
     this.request = this.request.bind(this);
+    this.axios = axios;
   }
 
   private _handleError (params: ErrorParams): ErrorRes {

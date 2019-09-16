@@ -25,7 +25,8 @@
   }
 
   // initialize instance
-  const { request, setting } = new Request(config)
+  // axios is AxiosStatic
+  const { request, setting, axios } = new Request(config)
 
   // method 1
   request(
@@ -69,6 +70,9 @@
     },
     codeField: 'ret'
   })
+
+  // AxiosStatic
+  const myInterceptor = axios.interceptors.request.use(function () {/*...*/});
 ```
 
 
