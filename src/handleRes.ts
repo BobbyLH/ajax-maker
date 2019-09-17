@@ -5,8 +5,8 @@ export interface ResObj {
   [propName: string]: any;
 }
 
-export type Res = ResObj;
-export type Callback = (res: Res) => any
+export type Res = ResObj | string;
+export type Callback = (res: Res) => any;
 
 export interface Params {
   res: Res;
