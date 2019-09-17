@@ -2,12 +2,6 @@ import axios, { AxiosStatic, AxiosRequestConfig } from 'axios';
 import { Logger } from 'peeler-js';
 import genhandleRes, { Res, Config, Params } from './handleRes';
 
-const logger = new Logger({
-  logPrefix: 'Ajax-Maker',
-  debug: true,
-  logLevel: 'info'
-});
-
 type AnyObj = {
   [propName: string]: any;
 };
@@ -48,13 +42,20 @@ export interface PromiseWrapper {
 
 export class Request {
   private _handleRes: (params: Params) => any;
+  private _logger: Logger;
   public axios: AxiosStatic;
 
   constructor (config?: Config) {
+    const { debug = false, logLevel = 'warn' } = config || {};
     this._handleRes = genhandleRes(config);
     this.setting = this.setting.bind(this);
     this.request = this.request.bind(this);
     this.axios = axios;
+    this._logger = new Logger({
+      logPrefix: 'Ajax-Maker',
+      debug,
+      logLevel
+    });
   }
 
   private _handleError (params: ErrorParams): ErrorRes {
@@ -140,7 +141,7 @@ export class Request {
   }
 
   public setting (config: Config) {
-    if (!config) return logger.logWarn('setting method required correct parameters!');
+    if (!config) return this._logger.logWarn('setting method required correct parameters!');
     this._handleRes = genhandleRes(config);
   }
 
@@ -163,11 +164,11 @@ export class Request {
         return this._handleRes({
           res: data,
           success: res => {
-            logger.logInfo(`Success - ${url}`);
+            this._logger.logInfo(`Success - ${url}`);
             return success ? success(res) : cb.success(res);
           },
           fail: res => {
-            logger.logWarn(`Failed - ${url}`);
+            this._logger.logWarn(`Failed - ${url}`);
             return fail ? fail(res) : cb.fail(res);
           },
           error: err => {
@@ -193,7 +194,7 @@ export class Request {
         }));
       }
     }).catch(err => {
-      logger.logErr(`Error - ${err}`);
+      this._logger.logErr(`Error - ${err}`);
 
       const errRes = this._handleError({
         status: err && +err.status === 200 ? 200 : 500,

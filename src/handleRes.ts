@@ -1,10 +1,5 @@
 import { isType, Logger } from 'peeler-js';
-
-const logger = new Logger({
-  logPrefix: 'Ajax-Maker-handleRes',
-  debug: true,
-  logLevel: 'info'
-});
+import { TlogLevelStr } from 'peeler-js/es/logger';
 
 export interface ResObj {
   [propName: string]: any;
@@ -30,11 +25,18 @@ export type CodeMap = {
 export interface Config {
   codeMap?: CodeMap;
   codeField?: string;
+  debug?: boolean;
+  logLevel?: TlogLevelStr;
 }
 
 function handleRes (config?: Config) {
-  const { codeMap, codeField = 'code' } = config || {};
+  const { codeMap, codeField = 'code', debug = false, logLevel = 'warn' } = config || {};
   const { suc_code = 0, err_code = -1, login_code = 50 } = codeMap || {};
+  const logger = new Logger({
+    logPrefix: 'Ajax-Maker-handleRes',
+    debug,
+    logLevel
+  });
 
   /**
    * handle api response
