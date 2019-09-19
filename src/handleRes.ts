@@ -66,15 +66,15 @@ function handleRes (config?: Config) {
     if (ret === null) return error ? error((<ResObj>res)) : res;
 
     switch (ret) {
-      case suc_code:
-        return success ? success(res) : res;
-      case login_code:
-        return login ? login(res) : res;
-      case err_code:
-        return error ? error(res) : res;
-      default:
-        return fail ? fail(res) : res;
-      }
+    case suc_code:
+      return success ? success(res) : res;
+    case login_code:
+      return login ? login(res) : res;
+    case err_code:
+      return error ? error(res) : res;
+    default:
+      return fail ? fail(res) : res;
+    }
   };
 }
 

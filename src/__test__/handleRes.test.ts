@@ -140,7 +140,7 @@ describe('handleRes\'s test module', function () {
     expect(handleRes1(p_with_cb_login)).to.be.equal(50);
   });
   it('handleRes with callbacks - str', function () {
-    expect(handleRes1(p_with_cb_str)).to.be.equal('token:9238273213');
+    expect(handleRes1(p_with_cb_str)).to.have.property('res').to.be.equal('token:9238273213');
   });
   it('handleRes with callbacks - json', function () {
     expect(handleRes1(p_with_cb_json)).to.be.equal(0);
