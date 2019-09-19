@@ -35,7 +35,7 @@ export interface PromiseWrapper<T> extends Promise<T> {
   login: <TResult = T>(cb: ((res: Res) => TResult | PromiseLike<TResult>)) => PromiseWrapper<TResult>;
   fail: <TResult = T>(cb: ((res: Res) => TResult | PromiseLike<TResult>)) => PromiseWrapper<TResult>;
   error: <TResult = T>(cb: ((res: ErrorRes) => TResult | PromiseLike<TResult>)) => PromiseWrapper<TResult>;
-};
+}
 
 
 export class Request {
