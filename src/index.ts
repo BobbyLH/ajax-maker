@@ -30,11 +30,11 @@ type ErrorRes = {
   data: ErrorData;
 };
 
-export interface PromiseWrapper<T> extends Promise<T> {
-  success: <TResult = T>(cb: ((res: Res) => TResult | PromiseLike<TResult>)) => PromiseWrapper<TResult>;
-  login: <TResult = T>(cb: ((res: Res) => TResult | PromiseLike<TResult>)) => PromiseWrapper<TResult>;
-  fail: <TResult = T>(cb: ((res: Res) => TResult | PromiseLike<TResult>)) => PromiseWrapper<TResult>;
-  error: <TResult = T>(cb: ((res: ErrorRes) => TResult | PromiseLike<TResult>)) => PromiseWrapper<TResult>;
+export interface PromiseWrapper<TSuc, TFail, TLogin, TErr> extends Promise<TSuc | TFail | TLogin | TErr> {
+  success: <TResult = TSuc>(cb: ((res: Res) => TResult | PromiseLike<TResult>)) => PromiseWrapper<TResult, TFail, TLogin, TErr>;
+  fail: <TResult = TFail>(cb: ((res: Res) => TResult | PromiseLike<TResult>)) => PromiseWrapper<TSuc, TResult, TLogin, TErr>;
+  login: <TResult = TLogin>(cb: ((res: Res) => TResult | PromiseLike<TResult>)) => PromiseWrapper<TSuc, TFail, TResult, TErr>;
+  error: <TResult = TErr>(cb: ((res: ErrorRes) => TResult | PromiseLike<TResult>)) => PromiseWrapper<TSuc, TFail, TLogin, TResult>;
 }
 
 
@@ -143,7 +143,7 @@ export class Request {
     this._handleRes = genhandleRes(config);
   }
 
-  public request (options: Options): PromiseWrapper<unknown> {
+  public request (options: Options): PromiseWrapper<unknown, unknown, unknown, unknown> {
     options.withCredentials = typeof options.withCredentials === 'boolean' ? options.withCredentials : true;
     options.headers = options.headers || {};
     options.headers['Accept'] = '*/*';
