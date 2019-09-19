@@ -6,7 +6,7 @@ export interface ResObj {
 }
 
 export type Res = ResObj | string;
-export type Callback = (res: Res) => any;
+export type Callback = (res: ResObj) => any;
 
 export interface Params {
   res: Res;
@@ -52,28 +52,29 @@ function handleRes (config?: Config) {
       login = (): false | void => typeof window !== 'undefined' && window.location.reload(true)
     } = params;
   
-    if (typeof res !== 'object') {
+    if (typeof res === 'string') {
       try {
-        res = JSON.parse(res);
+        res = JSON.parse(res) as ResObj;
       } catch (err) {
+        // it's a string, indeed
         logger.logInfo(err);
-        return success ? success(res) : res;
+        return success ? success({ res }) : { res };
       }
     }
 
-    const ret = iterationObj(res as ResObj, codeField);
+    const ret = iterationObj(res, codeField);
     if (ret === null) return error ? error((<ResObj>res)) : res;
 
     switch (ret) {
-    case suc_code:
-      return success ? success(res) : res;
-    case login_code:
-      return login ? login(res) : res;
-    case err_code:
-      return error ? error(res) : res;
-    default:
-      return fail ? fail(res) : res;
-    }
+      case suc_code:
+        return success ? success(res) : res;
+      case login_code:
+        return login ? login(res) : res;
+      case err_code:
+        return error ? error(res) : res;
+      default:
+        return fail ? fail(res) : res;
+      }
   };
 }
 

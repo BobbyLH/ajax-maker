@@ -1,15 +1,15 @@
 import axios, { AxiosStatic, AxiosRequestConfig } from 'axios';
 import { Logger } from 'peeler-js';
-import genhandleRes, { Res, Config, Params } from './handleRes';
+import genhandleRes, { ResObj, Config, Params } from './handleRes';
 
 type AnyObj = {
   [propName: string]: any;
 };
 
 export interface Options extends AxiosRequestConfig {
-  success?: (res: Res) => any;
-  fail?: (res: Res) => any;
-  login?: (res: Res) => any;
+  success?: (res: ResObj) => any;
+  fail?: (res: ResObj) => any;
+  login?: (res: ResObj) => any;
   error?: (res: ErrorRes) => any;
 }
 
@@ -110,7 +110,7 @@ export class Request {
           return promiseWrapper;
         };
       } else {
-        promiseWrapper[type] = function (cb: (res: Res) => any) {
+        promiseWrapper[type] = function (cb: (res: ResObj) => any) {
           this[`${type}_cb`] = cb;
           return promiseWrapper;
         };
@@ -118,7 +118,7 @@ export class Request {
 
       promiseWrapper[type] = promiseWrapper[type].bind(promiseWrapper);
 
-      return (res: Res | ErrorRes) => {
+      return (res: ResObj | ErrorRes) => {
         if (type === 'error' && !promiseWrapper[`${type}_cb`]) return promiseRej(res);
 
         return promiseRes(promiseWrapper[`${type}_cb`] ? promiseWrapper[`${type}_cb`](res) : res);
@@ -143,7 +143,7 @@ export class Request {
     this._handleRes = genhandleRes(config);
   }
 
-  public request (options: Options): PromiseWrapper<Res, Res, Res, ErrorRes> {
+  public request (options: Options): PromiseWrapper<ResObj, ResObj, ResObj, ErrorRes> {
     options.withCredentials = typeof options.withCredentials === 'boolean' ? options.withCredentials : true;
     options.headers = options.headers || {};
     options.headers['Accept'] = '*/*';
