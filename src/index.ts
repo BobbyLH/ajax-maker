@@ -30,15 +30,13 @@ type ErrorRes = {
   data: ErrorData;
 };
 
-export interface PromiseWrapper {
-  success: (cb: (res: Res) => any) => PromiseWrapper;
-  login: (cb: (res: Res) => any) => PromiseWrapper;
-  fail: (cb: (res: Res) => any) => PromiseWrapper;
-  error: (cb: (res: ErrorRes) => any) => PromiseWrapper;
-  then: Promise<Res>;
-  catch: Promise<ErrorRes>;
-  finally: Promise<any>;
-}
+export interface PromiseWrapper<T> extends Promise<T> {
+  success: <TResult = T>(cb: ((res: Res) => TResult | PromiseLike<TResult>)) => PromiseWrapper<TResult>;
+  login: <TResult = T>(cb: ((res: Res) => TResult | PromiseLike<TResult>)) => PromiseWrapper<TResult>;
+  fail: <TResult = T>(cb: ((res: Res) => TResult | PromiseLike<TResult>)) => PromiseWrapper<TResult>;
+  error: <TResult = T>(cb: ((res: ErrorRes) => TResult | PromiseLike<TResult>)) => PromiseWrapper<TResult>;
+};
+
 
 export class Request {
   private _handleRes: (params: Params) => any;
@@ -145,7 +143,7 @@ export class Request {
     this._handleRes = genhandleRes(config);
   }
 
-  public request (options: Options): PromiseWrapper {
+  public request (options: Options): PromiseWrapper<unknown> {
     options.withCredentials = typeof options.withCredentials === 'boolean' ? options.withCredentials : true;
     options.headers = options.headers || {};
     options.headers['Accept'] = '*/*';
