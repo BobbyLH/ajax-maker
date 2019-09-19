@@ -31,10 +31,10 @@ type ErrorRes = {
 };
 
 export interface PromiseWrapper<TSuc, TFail, TLogin, TErr> extends Promise<TSuc | TFail | TLogin | TErr> {
-  success: <TResult = TSuc>(cb: ((res: Res) => TResult | PromiseLike<TResult>)) => PromiseWrapper<TResult, TFail, TLogin, TErr>;
-  fail: <TResult = TFail>(cb: ((res: Res) => TResult | PromiseLike<TResult>)) => PromiseWrapper<TSuc, TResult, TLogin, TErr>;
-  login: <TResult = TLogin>(cb: ((res: Res) => TResult | PromiseLike<TResult>)) => PromiseWrapper<TSuc, TFail, TResult, TErr>;
-  error: <TResult = TErr>(cb: ((res: ErrorRes) => TResult | PromiseLike<TResult>)) => PromiseWrapper<TSuc, TFail, TLogin, TResult>;
+  success: <TResult = TSuc>(cb: ((res: TSuc) => TResult | PromiseLike<TResult>)) => PromiseWrapper<TResult, TFail, TLogin, TErr>;
+  fail: <TResult = TFail>(cb: ((res: TFail) => TResult | PromiseLike<TResult>)) => PromiseWrapper<TSuc, TResult, TLogin, TErr>;
+  login: <TResult = TLogin>(cb: ((res: TLogin) => TResult | PromiseLike<TResult>)) => PromiseWrapper<TSuc, TFail, TResult, TErr>;
+  error: <TResult = TErr>(cb: ((err: TErr) => TResult | PromiseLike<TResult>)) => PromiseWrapper<TSuc, TFail, TLogin, TResult>;
 }
 
 
@@ -143,7 +143,7 @@ export class Request {
     this._handleRes = genhandleRes(config);
   }
 
-  public request (options: Options): PromiseWrapper<unknown, unknown, unknown, unknown> {
+  public request (options: Options): PromiseWrapper<Res, Res, Res, ErrorRes> {
     options.withCredentials = typeof options.withCredentials === 'boolean' ? options.withCredentials : true;
     options.headers = options.headers || {};
     options.headers['Accept'] = '*/*';
