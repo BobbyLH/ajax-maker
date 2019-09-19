@@ -1,6 +1,6 @@
 import 'mocha';
 import { expect } from 'chai';
-import genhandleRes, { Res } from '../handleRes';
+import genhandleRes, { ResObj } from '../handleRes';
 
 const handleRes1 = genhandleRes();
 const handleRes2 = genhandleRes({
@@ -37,8 +37,8 @@ describe('handleRes\'s test module', function () {
   const strRes = 'token:9238273213';
   const jsonRes = '{"code":0,"msg":"hello ts"}';
 
-  function normalCb (res: Res): string | number {
-    return typeof res === 'string' ? res : res.code;
+  function normalCb (res: ResObj): string | number | ResObj {
+    return typeof res.code === 'number' ? res.code : res;
   }
   const callbacks = {
     success: normalCb,
@@ -119,7 +119,7 @@ describe('handleRes\'s test module', function () {
   });
 
   it('handleRes without callbacks - str', function () {
-    expect(handleRes1(p_without_cb_str)).to.be.a('string');
+    expect(handleRes1(p_without_cb_str)).to.be.a('object');
   });
 
   it('handleRes without callbacks - json', function () {
