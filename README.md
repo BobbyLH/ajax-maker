@@ -1,5 +1,10 @@
 # Ajax Maker
 
+[![NPM downloads](http://img.shields.io/npm/dm/ajax-maker.svg?style=flat-square)](https://www.npmjs.com/package/ajax-maker)
+[![npm version](https://badge.fury.io/js/ajax-maker.svg)](https://badge.fury.io/js/ajax-maker)
+[![install size](https://packagephobia.now.sh/badge?p=ajax-maker)](https://packagephobia.now.sh/result?p=ajax-maker)
+[![license](http://img.shields.io/npm/l/ajax-maker.svg)](https://github.com/BobbyLH/ajax-maker/blob/master/LICENSE)
+
 ## API
 ```typescript
   import Request from 'ajax-maker';
