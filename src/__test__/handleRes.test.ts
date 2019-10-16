@@ -34,6 +34,10 @@ describe('handleRes\'s test module', function () {
     code: 50,
     success: false
   };
+  const otherRes = {
+    data: {a: 'other'},
+    msg: 'other res'
+  };
   const strRes = 'token:9238273213';
   const jsonRes = '{"code":0,"msg":"hello ts"}';
 
@@ -59,6 +63,9 @@ describe('handleRes\'s test module', function () {
   const p_without_cb_login = {
     res: loginRes
   };
+  const p_without_cb_other = {
+    res: otherRes
+  };
   const p_without_cb_str = {
     res: strRes
   };
@@ -80,6 +87,10 @@ describe('handleRes\'s test module', function () {
   };
   const p_with_cb_login = {
     res: loginRes,
+    ...callbacks
+  };
+  const p_with_cb_other = {
+    res: otherRes,
     ...callbacks
   };
   const p_with_cb_str = {
@@ -118,6 +129,10 @@ describe('handleRes\'s test module', function () {
     expect(handleRes1(p_without_cb_login)).to.be.false;
   });
 
+  it('handleRes without callbacks and codeField - then', function () {
+    expect(handleRes1(p_without_cb_other)).to.be.an('object');
+  });
+
   it('handleRes without callbacks - str', function () {
     expect(handleRes1(p_without_cb_str)).to.be.a('object');
   });
@@ -138,6 +153,11 @@ describe('handleRes\'s test module', function () {
   });
   it('handleRes with callbacks - login', function () {
     expect(handleRes1(p_with_cb_login)).to.be.equal(50);
+  });
+  it('handleRes2 with callbacks but without codeField - then', function () {
+    expect(handleRes1(p_with_cb_other))
+      .to.be.an('object')
+      .to.have.property('msg').to.be.equal('other res');
   });
   it('handleRes with callbacks - str', function () {
     expect(handleRes1(p_with_cb_str)).to.have.property('res').to.be.equal('token:9238273213');

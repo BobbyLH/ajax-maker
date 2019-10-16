@@ -47,12 +47,12 @@ function req1 () {
     login,
     fail,
     error
-  })
+  }).then(res => console.log('then res', 666, res))
 }
 
 function req2 () {
-  const success = res => console.log('suc', 123, res)
-  const error = res => console.log('error', 789, res)
+  const success = res => console.log('then suc', 123, res)
+  const error = res => console.log('catch error', 789, res)
 
   request({
     baseURL: 'http://172.16.49.244/api/login',

@@ -80,5 +80,27 @@
   const myInterceptor = axios.interceptors.request.use(function () {/*...*/});
 ```
 
+**Note**: If the `codeField` doesn't existence, you can get result in `then` method.
+```typescript
+  const config = {
+    codeMap: {
+      suc_code: 200,
+      err_code: -1,
+      login_code: '40100'
+    },
+    codeField: 'non-existent-code'
+  }
+
+  const { request } = new Request(config);
+
+  request(
+    {
+      url: `https://api.com/getMessage`,
+      method: 'get'
+    }
+  )
+  .then(res => console.log('get result in then', res))
+```
+
 
 

@@ -129,7 +129,8 @@ export class Request {
       success: factory('success'),
       fail: factory('fail'),
       error: factory('error'),
-      login: factory('login')
+      login: factory('login'),
+      spare: (res: ResObj) => promiseRes(res)
     };
 
     return {
@@ -180,7 +181,8 @@ export class Request {
             });
             return error ? error(errRes) : cb.error(errRes);
           },
-          login: res => login ? login(res) : cb.login(res)
+          login: res => login ? login(res) : cb.login(res),
+          spare: cb.spare
         });
       } else {
         return cb.error(this._handleError({
