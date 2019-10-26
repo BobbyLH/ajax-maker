@@ -1,6 +1,6 @@
 {
   "name": "ajax-maker",
-  "version": "0.0.12",
+  "version": "0.0.13",
   "description": "ajax request library base on axios",
   "main": "dist/index.js",
   "scripts": {
