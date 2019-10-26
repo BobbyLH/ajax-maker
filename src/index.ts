@@ -2,7 +2,7 @@ import axios, { AxiosStatic, AxiosRequestConfig } from 'axios';
 import { Logger } from 'peeler-js';
 import genhandleRes, { ResObj, Config, Params } from './handleRes';
 
-type AnyObj = {
+export type AnyObj = {
   [propName: string]: any;
 };
 
@@ -13,19 +13,19 @@ export interface Options extends AxiosRequestConfig {
   error?: (res: ErrorRes) => any;
 }
 
-type FactoryType = 'success' | 'fail' | 'error' | 'login';
+export type FactoryType = 'success' | 'fail' | 'error' | 'login';
 
-type ErrorParams = {
+export type ErrorParams = {
   status: number;
   netWorkError: boolean;
   data: AnyObj;
 };
 
-interface ErrorData extends AnyObj {
+export interface ErrorData extends AnyObj {
   status: number;
 }
 
-type ErrorRes = {
+export type ErrorRes = {
   message: string;
   data: ErrorData;
 };
@@ -130,7 +130,7 @@ export class Request {
       fail: factory('fail'),
       error: factory('error'),
       login: factory('login'),
-      spare: (res: ResObj) => promiseRes(res)
+      thenable: (res: ResObj) => promiseRes(res)
     };
 
     return {
@@ -182,7 +182,7 @@ export class Request {
             return error ? error(errRes) : cb.error(errRes);
           },
           login: res => login ? login(res) : cb.login(res),
-          spare: cb.spare
+          thenable: cb.thenable
         });
       } else {
         return cb.error(this._handleError({

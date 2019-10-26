@@ -14,7 +14,7 @@ export interface Params {
   fail?: Callback;
   error?: Callback;
   login?: Callback;
-  spare?: Callback;
+  thenable?: Callback;
 }
 
 export type CodeMap = {
@@ -51,7 +51,7 @@ function handleRes (config?: Config) {
       fail,
       error,
       login = (): false | void => typeof window !== 'undefined' && window.location.reload(true),
-      spare
+      thenable
     } = params;
   
     if (typeof res === 'string') {
@@ -65,7 +65,7 @@ function handleRes (config?: Config) {
     }
 
     const ret = iterationObj(res, codeField);
-    if (ret === null) return spare ? spare(res) : (error ? error(res) : res);
+    if (ret === null) return thenable ? thenable(res) : (error ? error(res) : res);
 
     switch (ret) {
     case suc_code:
