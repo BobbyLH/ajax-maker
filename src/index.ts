@@ -41,19 +41,22 @@ export interface PromiseWrapper<TSuc, TFail, TLogin, TErr> extends Promise<TSuc 
 export class Request {
   private _handleRes: (params: Params) => any;
   private _logger: Logger;
+  private _config: Config;
   public axios: AxiosStatic;
 
   constructor (config?: Config) {
     const { debug = false, logLevel = 'warn' } = config || {};
-    this._handleRes = genhandleRes(config);
-    this.setting = this.setting.bind(this);
-    this.request = this.request.bind(this);
-    this.axios = axios;
     this._logger = new Logger({
       logPrefix: 'Ajax-Maker',
       debug,
       logLevel
     });
+    this._config = config || {};
+    this._handleRes = genhandleRes(this._config);
+
+    this.axios = axios;
+    this.setting = this.setting.bind(this);
+    this.request = this.request.bind(this);
   }
 
   private _handleError (params: ErrorParams): ErrorRes {
@@ -102,7 +105,7 @@ export class Request {
       promiseRej = reject;
     });
 
-    const factory = (type: FactoryType) => {
+    const factory = (type: FactoryType, presetCb?: (res: ResObj | ErrorRes) => any) => {
       if (type === 'error') {
         // error reload function defination
         promiseWrapper[type] = function (cb: (res: ErrorRes) => any) {
@@ -121,15 +124,23 @@ export class Request {
       return (res: ResObj | ErrorRes) => {
         if (type === 'error' && !promiseWrapper[`${type}_cb`]) return promiseRej(res);
 
-        return promiseRes(promiseWrapper[`${type}_cb`] ? promiseWrapper[`${type}_cb`](res) : res);
+        return promiseRes(
+          promiseWrapper[`${type}_cb`]
+            ? promiseWrapper[`${type}_cb`](res)
+            : presetCb
+              ? presetCb(res)
+              : res
+          );
       };
     };
 
+    const { defaultCallbacks } = this._config || {};
+    const { success: presetSuccess, fail: presetFail, error: presetError, login: presetLogin } = defaultCallbacks || {};
     const callbacks = {
-      success: factory('success'),
-      fail: factory('fail'),
-      error: factory('error'),
-      login: factory('login'),
+      success: factory('success', presetSuccess),
+      fail: factory('fail', presetFail),
+      error: factory('error', presetError),
+      login: factory('login', presetLogin),
       thenable: (res: ResObj) => promiseRes(res)
     };
 
@@ -141,7 +152,8 @@ export class Request {
 
   public setting (config: Config) {
     if (!config) return this._logger.logWarn('setting method required correct parameters!');
-    this._handleRes = genhandleRes(config);
+    this._config = { ...this._config, ...config };
+    this._handleRes = genhandleRes(this._config);
   }
 
   public request (options: Options): PromiseWrapper<ResObj, ResObj, ResObj, ErrorRes> {

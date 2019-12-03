@@ -6,7 +6,7 @@
 [![license](http://img.shields.io/npm/l/ajax-maker.svg)](https://github.com/BobbyLH/ajax-maker/blob/master/LICENSE)
 
 ## API
-```typescript
+```ts
   import Request from 'ajax-maker';
 
   type CodeMap = {
@@ -15,9 +15,19 @@
     login_code?: string | number;
   };
 
+  type DefaultCallbacks = (res: ResObj) => any;
+
   interface Config {
     codeMap?: CodeMap;
     codeField?: string;
+    debug?: boolean;
+    logLevel?: "error" | "warn" | "detail" | "info" | "silent";
+    defaultCallbacks?: {
+      success?: DefaultCallbacks;
+      fail?: DefaultCallbacks;
+      error?: DefaultCallbacks;
+      login?: DefaultCallbacks;
+    };
   }
 
   const config: Config = {
@@ -26,7 +36,7 @@
       err_code: -1,
       login_code: '40100'
     },
-    codeField: 'code'
+    codeField: 'code',
   }
 
   // initialize instance

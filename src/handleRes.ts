@@ -28,6 +28,7 @@ export interface Config {
   codeField?: string;
   debug?: boolean;
   logLevel?: TlogLevelStr;
+  defaultCallbacks?: Omit<Params, 'res' | 'thenable'>;
 }
 
 function handleRes (config?: Config) {
