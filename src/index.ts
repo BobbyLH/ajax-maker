@@ -130,7 +130,7 @@ export class Request {
             : presetCb
               ? presetCb(res)
               : res
-          );
+        );
       };
     };
 
