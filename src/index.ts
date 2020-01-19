@@ -167,7 +167,7 @@ export class Request {
       callbacks: cb
     } = this._constructPromise();
 
-    axios(options).then(response => {
+    this.axios(options).then(response => {
       const { status, data, request } = response;
       const url = request.responseURL;
 

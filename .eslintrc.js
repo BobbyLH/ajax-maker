@@ -36,7 +36,7 @@ module.exports = {
 			'error',
 			'always'
 		],
-		'no-unused-vars': 'warn',
-		'no-prototype-builtins': 'warn'
+		'no-unused-vars': 'off',
+		'no-prototype-builtins': 'off'
 	}
 };
