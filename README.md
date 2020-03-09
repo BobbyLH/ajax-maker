@@ -90,7 +90,7 @@
   const myInterceptor = axios.interceptors.request.use(function () {/*...*/});
 ```
 
-**Note**: If the `codeField` doesn't existence, you can get result in `then` method.
+**Note**: If the `codeField` doesn't existence, you also can get result in `then` method.
 ```typescript
   const config = {
     codeMap: {
