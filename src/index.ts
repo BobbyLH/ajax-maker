@@ -188,7 +188,9 @@ export class Request {
               netWorkError: false,
               data: {
                 options,
-                res: err
+                res: err,
+                stack: (err && err.stack) || '',
+                message: (err && err.message) || ''
               }
             });
             return error ? error(errRes) : cb.error(errRes);
@@ -207,13 +209,14 @@ export class Request {
       }
     }).catch(err => {
       this._logger.logErr(`Error - ${err}`);
-
       const errRes = this._handleError({
         status: err && +err.status === 200 ? 200 : 500,
         netWorkError: err.status >= 400 && err.status < 500,
         data: {
           options,
-          err
+          err,
+          stack: (err && err.stack) || '',
+          message: (err && err.message) || ''
         }
       });
 
