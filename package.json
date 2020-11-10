@@ -22,8 +22,8 @@
   "author": "bobby.li",
   "license": "MIT",
   "dependencies": {
-    "axios": "^0.19.2",
-    "peeler-js": "^0.2.23"
+    "axios": "~0.21.0",
+    "peeler-js": "~0.3.4"
   },
   "devDependencies": {
     "@babel/core": "^7.6.0",

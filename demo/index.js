@@ -35,7 +35,7 @@ function req1 () {
   const login = res => console.log('login', 555, res)
 
   request({
-    baseURL: 'http://172.16.49.244/api/login',
+    baseURL: '/api',
     data: {
       "token": "364a8e3a-ce25-11e9-ab1a-00163f00da8c"
     },
@@ -55,7 +55,7 @@ function req2 () {
   const error = res => console.log('catch error', 789, res)
 
   request({
-    baseURL: 'http://172.16.49.244/api/login',
+    baseURL: '/api',
     data: {
       "token": "364a8e3a-ce25-11e9-ab1a-00163f00da8c"
     },
@@ -75,7 +75,7 @@ function req3 () {
   const login = res => console.log('login', 555, res)
 
   request({
-    baseURL: 'http://172.16.49.244/api/login',
+    baseURL: '/api',
     data: {
       "token": "364a8e3a-ce25-11e9-ab1a-00163f00da8c"
     },

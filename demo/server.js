@@ -12,6 +12,14 @@ app.use(middleware(compiler, {
   logLevel: 'debug'
 }))
 
+app.post('/api', function (req, res, next) {
+  console.info('请求', req.url);
+  res.send({
+    data: {}
+  });
+  res.status = 200;
+})
+
 app.use('*', function (req, res, next) {
   var filename = path.join(compiler.outputPath, 'index.html')
   compiler.outputFileSystem.readFile(filename, function (err, result) {
