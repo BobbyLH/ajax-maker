@@ -4149,10 +4149,10 @@ pbkdf2@^3.0.3:
     safe-buffer "^5.0.1"
     sha.js "^2.4.8"
 
-peeler-js@~0.3.4:
-  version "0.3.4"
-  resolved "https://registry.npmjs.org/peeler-js/-/peeler-js-0.3.4.tgz#9f26ae42fcd30be082ea8be64ee6bf4bbf8d8efa"
-  integrity sha512-gGAmwN0C2Vt5bvyY9nZCXxBkL5rNL2B3u1+rk/J2yzddiCD0LhoPVfp8RmWNkBSfnvKpIsFEKME4WZ4oa99y+A==
+peeler-js@~0.3.9:
+  version "0.3.9"
+  resolved "https://registry.npmjs.org/peeler-js/-/peeler-js-0.3.9.tgz#d61c79512dcc4dd2df7d210c1cfad649ac79494d"
+  integrity sha512-i6uq1wMMrgosT95RhLpOz5xEO3HhJxFlEA0MwuGhxZT/Y66bBsVZLJYFS48b7+AKPTg07wVoUbhKULZQHwvm3g==
   dependencies:
     "@babel/runtime-corejs2" "^7.5.4"
 
