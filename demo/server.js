@@ -15,7 +15,10 @@ app.use(middleware(compiler, {
 app.post('/api', function (req, res, next) {
   console.info('请求', req.url);
   res.send({
-    data: {}
+    data: {
+      name: '请求demo',
+      time: Date.now()
+    }
   });
   res.status = 200;
 })

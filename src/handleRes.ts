@@ -1,5 +1,5 @@
-import { isType, Logger } from 'peeler-js';
-import { TlogLevelStr } from 'peeler-js/es/logger';
+import { Logger, isType } from 'peeler-js';
+import type { TlogLevelStr } from 'peeler-js/es/logger';
 
 export interface ResObj {
   [propName: string]: any;
@@ -35,7 +35,7 @@ function handleRes (config?: Config) {
   const { codeMap, codeField = 'code', debug = false, logLevel = 'warn' } = config || {};
   const { suc_code = 0, err_code = -1, login_code = 50 } = codeMap || {};
   const logger = new Logger({
-    logPrefix: 'Ajax-Maker-handleRes',
+    logPrefix: 'AJAX-MAKER',
     debug,
     logLevel
   });
@@ -46,6 +46,7 @@ function handleRes (config?: Config) {
    * @return {any}
    */
   return function (params: Params): any {
+    /* eslint-disable prefer-const */
     let {
       res,
       success,
@@ -54,6 +55,7 @@ function handleRes (config?: Config) {
       login = (): false | void => typeof window !== 'undefined' && window.location.reload(true),
       thenable
     } = params;
+    /* eslint-enable prefer-const */
   
     if (typeof res === 'string') {
       try {

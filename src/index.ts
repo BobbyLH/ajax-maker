@@ -47,7 +47,7 @@ export class Request {
   constructor (config?: Config) {
     const { debug = false, logLevel = 'warn' } = config || {};
     this._logger = new Logger({
-      logPrefix: 'Ajax-Maker',
+      logPrefix: 'AJAX-MAKER',
       debug,
       logLevel
     });

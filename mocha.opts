@@ -1,2 +1,4 @@
+# mocha.opts
+--require mocha.ts-node.js
 --reporter spec
---require ts-node/register src/**/*.ts
+src/**/__test__/*.ts
