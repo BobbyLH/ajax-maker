@@ -18,7 +18,8 @@ app.post('/api', function (req, res, next) {
     data: {
       name: '请求demo',
       time: Date.now()
-    }
+    },
+    code: 0
   });
   res.status = 200;
 })

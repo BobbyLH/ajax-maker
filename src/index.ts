@@ -30,11 +30,11 @@ export type ErrorRes = {
   data: ErrorData;
 };
 
-export interface PromiseWrapper<TSuc, TFail, TLogin, TErr> extends Promise<TSuc | TFail | TLogin | TErr> {
-  success: <TResult = TSuc>(cb: ((res: TSuc) => TResult | PromiseLike<TResult>)) => PromiseWrapper<TResult, TFail, TLogin, TErr>;
-  fail: <TResult = TFail>(cb: ((res: TFail) => TResult | PromiseLike<TResult>)) => PromiseWrapper<TSuc, TResult, TLogin, TErr>;
-  login: <TResult = TLogin>(cb: ((res: TLogin) => TResult | PromiseLike<TResult>)) => PromiseWrapper<TSuc, TFail, TResult, TErr>;
-  error: <TResult = TErr>(cb: ((err: TErr) => TResult | PromiseLike<TResult>)) => PromiseWrapper<TSuc, TFail, TLogin, TResult>;
+export interface PromiseWrapper<T, TSuc = T, TFail = T, TLogin = T, TErr = T, D extends string = ''> {
+  success: <TResult = T, Delete extends string = (D | 'success')>(cb: ((res: T) => TResult | PromiseLike<TResult>)) => Omit<PromiseWrapper<T, TResult, TFail, TLogin, TErr, Delete>, Delete> & Promise<TResult | TFail | TLogin | TErr>;
+  fail: <TResult = T, Delete extends string = (D | 'fail')>(cb: ((res: T) => TResult | PromiseLike<TResult>)) => Omit<PromiseWrapper<T, TSuc, TResult, TLogin, TErr, Delete>, Delete> & Promise<TSuc | TResult | TLogin | TErr>;
+  login: <TResult = T, Delete extends string = (D | 'login')>(cb: ((res: T) => TResult | PromiseLike<TResult>)) => Omit<PromiseWrapper<T, TSuc, TFail, TResult, TErr, Delete>, Delete> & Promise<TSuc | TFail | TResult | TErr>;
+  error: <TResult = T, Delete extends string = (D | 'error')>(cb: ((err: T) => TResult | PromiseLike<TResult>)) => Omit<PromiseWrapper<T, TSuc, TFail, TLogin, TResult, Delete>, Delete> & Promise<TSuc | TFail | TLogin | TResult>;
 }
 
 
@@ -106,18 +106,11 @@ export class Request {
     });
 
     const factory = (type: FactoryType, presetCb?: (res: ResObj | ErrorRes) => any) => {
-      if (type === 'error') {
-        // error reload function defination
-        promiseWrapper[type] = function (cb: (res: ErrorRes) => any) {
-          this[`${type}_cb`] = cb;
-          return promiseWrapper;
-        };
-      } else {
-        promiseWrapper[type] = function (cb: (res: ResObj) => any) {
-          this[`${type}_cb`] = cb;
-          return promiseWrapper;
-        };
-      }
+      promiseWrapper[type] = function (cb: (res: ResObj | ErrorRes) => any) {
+        this[`${type}_cb`] = cb;
+        delete promiseWrapper[type];
+        return promiseWrapper;
+      };
 
       promiseWrapper[type] = promiseWrapper[type].bind(promiseWrapper);
 
@@ -156,7 +149,7 @@ export class Request {
     this._handleRes = genhandleRes(this._config);
   }
 
-  public request (options: Options): PromiseWrapper<ResObj, ResObj, ResObj, ErrorRes> {
+  public request <T>(options: Options): PromiseWrapper<T, ResObj, ResObj, ResObj, ErrorRes> {
     options.withCredentials = typeof options.withCredentials === 'boolean' ? options.withCredentials : true;
     options.headers = options.headers || {};
     options.headers['Accept'] = '*/*';

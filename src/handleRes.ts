@@ -52,7 +52,7 @@ function handleRes (config?: Config) {
       success,
       fail,
       error,
-      login = (): false | void => typeof window !== 'undefined' && window.location.reload(true),
+      login = (): false | void => typeof window !== 'undefined' && window.location.reload(),
       thenable
     } = params;
     /* eslint-enable prefer-const */
@@ -62,7 +62,7 @@ function handleRes (config?: Config) {
         res = JSON.parse(res) as ResObj;
       } catch (err) {
         // it's a string, indeed
-        logger.logInfo(err);
+        logger.logInfo(err as Error);
         return success ? success({ res }) : { res };
       }
     }
