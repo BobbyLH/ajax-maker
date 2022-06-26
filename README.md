@@ -9,41 +9,38 @@
 ```ts
   import Request from 'ajax-maker';
 
-  type CodeMap = {
-    suc_code?: string | number | boolean;
-    err_code?: string | number;
-    login_code?: string | number;
-  };
-
-  type DefaultCallbacks = (res: ResObj) => any;
-
-  interface Config {
-    codeMap?: CodeMap;
-    codeField?: string;
+  interface InitConfig<T = any> {
+    onSuccess?: (res: T) => any;
+    onFail?: (res: T) => any;
+    onLogin?: (res: T) => any;
+    onError?: (res: T | ParseError) => any;
+    isSuccess?: (res: T, status: number) => boolean;
+    isFail?: (res: T, status: number) => boolean;
+    isError?: (res: T, status: number) => boolean;
+    isLogin?: (res: T, status: number) => boolean;
     debug?: boolean;
-    logLevel?: "error" | "warn" | "detail" | "info" | "silent";
-    defaultCallbacks?: {
-      success?: DefaultCallbacks;
-      fail?: DefaultCallbacks;
-      error?: DefaultCallbacks;
-      login?: DefaultCallbacks;
-    };
+    logLevel?: TlogLevelStr;
   }
 
-  const config: Config = {
-    codeMap: {
-      suc_code: 200,
-      err_code: -1,
-      login_code: '40100'
-    },
-    codeField: 'code',
-  }
+  const onSuccess = res => console.log('init success', res);
+  const onFail = res => console.log('init fail', res);
+  const onError = res => console.log('init error', res);
+  const onLogin = res => console.log('init login', res);
 
   // initialize instance
   // axios is AxiosStatic
-  const { request, setting, axios } = new Request(config)
+  const { request, setting, axios } = new Request({
+    isSuccess: (res, status) => res.code === 0,
+    isFail: (res, status) => res.code !== 0,
+    isError: (res, status) => res.code === 500,
+    isLogin: (res, status) => res.code === 50,
+    onSuccess,
+    onFail,
+    onError,
+    onLogin
+  });
 
-  // method 1
+  // method 1 with init callbacks
   request(
     {
       url: `https://api.com/getMessage`,
@@ -53,23 +50,25 @@
   .then(res => console.log(res))
   .catch(err => console.error(err))
 
-  // method 2
+  // method 2 with custom callbacks
   request(
     {
       baseUrl: `https://api.com/getMessage`,
       method: 'get',
-      success: res => console.log(res),
-      login(res => console.log(res)),
-      fail: res => console.log(res),
-      error: err => console.error(err)
+      onSuccess: res => console.log(res),
+      onFail(res => console.log(res)),
+      onError: res => console.log(res),
+      onLogin: err => console.error(err),
+      isLogin: (res, status) => status === 401
     }
   )
 
-  // method 3
+  // method 3 with chain callbacks
   request(
     {
       baseUrl: `https://api.com/getMessage`,
-      method: 'get'
+      method: 'get',
+      isError: (res, status) => res.code === -1
     }
   )
   .success(res => console.log(res))
@@ -77,40 +76,26 @@
   .fail(res => console.log(res))
   .error(err => console.error(err))
 
+  // method 4 with rest api
+  request(
+    {
+      baseUrl: `https://api.com/getMessage`,
+      method: 'get',
+      isSuccess: (res, status) => status === 200
+    }
+  )
+  .success(res => console.log('success', res))
+  .rest(res => console.log('rest', res))
 
   // dynamic setting
   setting({
-    codeMap: {
-      suc_code: 500;
-    },
-    codeField: 'ret'
+    debug: false
   })
 
   // AxiosStatic
   const myInterceptor = axios.interceptors.request.use(function () {/*...*/});
 ```
 
-**Note**: If the `codeField` doesn't existence, you also can get result in `then` method.
-```typescript
-  const config = {
-    codeMap: {
-      suc_code: 200,
-      err_code: -1,
-      login_code: '40100'
-    },
-    codeField: 'non-existent-code'
-  }
-
-  const { request } = new Request(config);
-
-  request(
-    {
-      url: `https://api.com/getMessage`,
-      method: 'get'
-    }
-  )
-  .then(res => console.log('get result in then', res))
-```
 
 
 

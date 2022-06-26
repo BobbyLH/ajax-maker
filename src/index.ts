@@ -1,27 +1,38 @@
 import axios, { AxiosStatic, AxiosRequestConfig } from 'axios';
 import { Logger } from 'peeler-js';
-import genhandleRes, { ResObj, Config, Params } from './handleRes';
 
-export type AnyObj = {
-  [propName: string]: any;
-};
+import type { TlogLevelStr } from 'peeler-js/es/logger';
 
-export interface Options extends AxiosRequestConfig {
-  success?: (res: ResObj) => any;
-  fail?: (res: ResObj) => any;
-  login?: (res: ResObj) => any;
-  error?: (res: ErrorRes) => any;
+export interface ParseError {
+  name: string;
+  message: string;
+  stack: string;
 }
+
+export interface InitConfig<T = any> {
+  onSuccess?: (res: T) => any;
+  onFail?: (res: T) => any;
+  onLogin?: (res: T) => any;
+  onError?: (res: T | ParseError) => any;
+  isSuccess?: (res: T, status: number) => boolean;
+  isFail?: (res: T, status: number) => boolean;
+  isError?: (res: T, status: number) => boolean;
+  isLogin?: (res: T, status: number) => boolean;
+  debug?: boolean;
+  logLevel?: TlogLevelStr;
+}
+
+export interface Options<T> extends Omit<InitConfig<T>, 'debug' | 'logLevel'>, AxiosRequestConfig {}
 
 export type FactoryType = 'success' | 'fail' | 'error' | 'login';
 
 export type ErrorParams = {
   status: number;
   netWorkError: boolean;
-  data: AnyObj;
+  data: Record<string, any>;
 };
 
-export interface ErrorData extends AnyObj {
+export interface ErrorData extends Record<string, any> {
   status: number;
 }
 
@@ -30,21 +41,54 @@ export type ErrorRes = {
   data: ErrorData;
 };
 
-export interface PromiseWrapper<T, TSuc = T, TFail = T, TLogin = T, TErr = T, D extends string = ''> {
-  success: <TResult = T, Delete extends string = (D | 'success')>(cb: ((res: T) => TResult | PromiseLike<TResult>)) => Omit<PromiseWrapper<T, TResult, TFail, TLogin, TErr, Delete>, Delete> & Promise<TResult | TFail | TLogin | TErr>;
-  fail: <TResult = T, Delete extends string = (D | 'fail')>(cb: ((res: T) => TResult | PromiseLike<TResult>)) => Omit<PromiseWrapper<T, TSuc, TResult, TLogin, TErr, Delete>, Delete> & Promise<TSuc | TResult | TLogin | TErr>;
-  login: <TResult = T, Delete extends string = (D | 'login')>(cb: ((res: T) => TResult | PromiseLike<TResult>)) => Omit<PromiseWrapper<T, TSuc, TFail, TResult, TErr, Delete>, Delete> & Promise<TSuc | TFail | TResult | TErr>;
-  error: <TResult = T, Delete extends string = (D | 'error')>(cb: ((err: T) => TResult | PromiseLike<TResult>)) => Omit<PromiseWrapper<T, TSuc, TFail, TLogin, TResult, Delete>, Delete> & Promise<TSuc | TFail | TLogin | TResult>;
+export interface PromiseWrapper<T, TSuc = T, TFail = T, TLogin = T, TErr = ParseError, D extends string = ''> {
+  success: <TResult, Delete extends string = (D | 'success')>(cb: (res: T) => TResult) => Omit<PromiseWrapper<T, TResult, TFail, TLogin, TErr, Delete>, 'fail' | 'error' | 'login' extends D ? Delete | 'rest' : Delete> & Promise<TResult | TFail | TLogin | TErr>;
+  fail: <TResult, Delete extends string = (D | 'fail')>(cb: (res: T) => TResult) => Omit<PromiseWrapper<T, TSuc, TResult, TLogin, TErr, Delete>, 'success' | 'error' | 'login' extends D ? Delete | 'rest' : Delete> & Promise<TSuc | TResult | TLogin | TErr>;
+  login: <TResult, Delete extends string = (D | 'login')>(cb: (res: T) => TResult) => Omit<PromiseWrapper<T, TSuc, TFail, TResult, TErr, Delete>, 'success' | 'fail' | 'error' extends D ? Delete | 'rest' : Delete> & Promise<TSuc | TFail | TResult | TErr>;
+  error: <TResult, Delete extends string = (D | 'error')>(cb: (res: T | ParseError) => TResult) => Omit<PromiseWrapper<T, TSuc, TFail, TLogin, TResult, Delete>, 'success' | 'fail' | 'login' extends D ? Delete | 'rest' : Delete> & Promise<TSuc | TFail | TLogin | TResult>;
+  rest: <TResult>(cb: (res: 'error' extends D ? T : T | ParseError ) => TResult) => Promise<
+  'success' | 'fail' | 'error' | 'login' extends D
+    ? TSuc | TFail | TErr | TLogin | TResult
+    : 'fail' | 'error' | 'login' extends D
+    ? TFail | TErr | TLogin | TResult
+    : 'success' | 'error' | 'login' extends D
+    ? TSuc | TErr | TLogin | TResult
+    : 'success' | 'fail' | 'login' extends D
+    ? TSuc | TFail | TLogin | TResult
+    : 'success' | 'fail' | 'error' extends D
+    ? TSuc | TFail | TErr | TResult
+    : 'success' | 'fail' extends D
+    ? TSuc | TFail | TResult
+    : 'success' | 'error' extends D
+    ? TSuc | TErr | TResult
+    : 'success' | 'login' extends D
+    ? TSuc | TLogin | TResult
+    : 'fail' | 'error' extends D
+    ? TFail | TErr | TResult
+    : 'fail' | 'login' extends D
+    ? TFail | TLogin | TResult
+    : 'error' | 'login' extends D
+    ? TErr | TLogin | TResult
+    : 'success' extends D
+    ? TSuc | TResult
+    : 'fail' extends D
+    ? TFail | TResult
+    : 'error' extends D
+    ? TErr | TResult
+    : 'login' extends D
+    ? TLogin | TResult
+    : TResult
+  >;
 }
 
 
 export class Request {
-  private _handleRes: (params: Params) => any;
   private _logger: Logger;
-  private _config: Config;
+  private _config: InitConfig;
+
   public axios: AxiosStatic;
 
-  constructor (config?: Config) {
+  constructor (config?: InitConfig) {
     const { debug = false, logLevel = 'warn' } = config || {};
     this._logger = new Logger({
       logPrefix: 'AJAX-MAKER',
@@ -52,168 +96,184 @@ export class Request {
       logLevel
     });
     this._config = config || {};
-    this._handleRes = genhandleRes(this._config);
 
     this.axios = axios;
     this.setting = this.setting.bind(this);
     this.request = this.request.bind(this);
   }
 
-  private _handleError (params: ErrorParams): ErrorRes {
-    const { status, netWorkError, data } = params;
-  
-    if (netWorkError) {
-      return {
-        message: 'Network exception, please try again later',
-        data: {
-          ...data,
-          status
-        }
-      };
-    } else if (status >= 500) {
-      return {
-        message: 'The server is not stable. Please try again later.',
-        data: {
-          ...data,
-          status
-        }
-      };
-    } else if (status) {
-      return {
-        message: 'The network is unstable. Please try again later.',
-        data: {
-          ...data,
-          status
-        }
-      };
-    } else {
-      return {
-        message: 'Client network connection abnormal, please try again',
-        data: {
-          ...data,
-          status: -1
-        }
-      };
-    }
+  private parseError(err: any) {
+    if (typeof err === 'string') err = new Error(err);
+    const name: string = err?.name ?? '';
+    const message: string =
+      err?.message ?? err?.toString?.() ?? err ?? '';
+    const stack: string = err?.stack ?? '';
+    return {
+      name,
+      message,
+      stack
+    };
   }
 
-  private _constructPromise () {
+  private _constructPromise<T> () {
     let promiseRes: any;
     let promiseRej: any;
-    const promiseWrapper: any = new Promise((resolve, reject) => {
+    const promiseWrapper: PromiseWrapper<T> & Promise<T> = new Promise<T>((resolve, reject) => {
       promiseRes = resolve;
       promiseRej = reject;
-    });
+    }) as any;
 
-    const factory = (type: FactoryType, presetCb?: (res: ResObj | ErrorRes) => any) => {
-      promiseWrapper[type] = function (cb: (res: ResObj | ErrorRes) => any) {
-        this[`${type}_cb`] = cb;
-        delete promiseWrapper[type];
-        return promiseWrapper;
-      };
-
-      promiseWrapper[type] = promiseWrapper[type].bind(promiseWrapper);
-
-      return (res: ResObj | ErrorRes) => {
-        if (type === 'error' && !promiseWrapper[`${type}_cb`]) return promiseRej(res);
-
-        return promiseRes(
-          promiseWrapper[`${type}_cb`]
-            ? promiseWrapper[`${type}_cb`](res)
-            : presetCb
-              ? presetCb(res)
-              : res
-        );
-      };
+    const callbacks = {
+      success: void 0 as any,
+      fail: void 0 as any,
+      error: void 0 as any,
+      login: void 0 as any,
+      rest: void 0 as any
+    } as {
+      success?: Parameters<PromiseWrapper<T>['success']>[0];
+      fail?: Parameters<PromiseWrapper<T>['fail']>[0];
+      login?: Parameters<PromiseWrapper<T>['login']>[0];
+      error?: Parameters<PromiseWrapper<T>['error']>[0];
+      rest?: Parameters<PromiseWrapper<T>['rest']>[0];
     };
 
-    const { defaultCallbacks } = this._config || {};
-    const { success: presetSuccess, fail: presetFail, error: presetError, login: presetLogin } = defaultCallbacks || {};
-    const callbacks = {
-      success: factory('success', presetSuccess),
-      fail: factory('fail', presetFail),
-      error: factory('error', presetError),
-      login: factory('login', presetLogin),
-      thenable: (res: ResObj) => promiseRes(res)
+    promiseWrapper.success = onSuccess => {
+      callbacks.success = onSuccess;
+      const wrapper = promiseWrapper as any;
+      delete wrapper.success;
+      if (!wrapper.fail && !wrapper.error && !wrapper.login) {
+        delete wrapper.rest;
+      }
+      return wrapper;
+    };
+
+    promiseWrapper.fail = onFail => {
+      callbacks.fail = onFail;
+      const wrapper = promiseWrapper as any;
+      delete wrapper.fail;
+      if (!wrapper.success && !wrapper.error && !wrapper.login) {
+        delete wrapper.rest;
+      }
+      return wrapper;
+    };
+
+    promiseWrapper.error = onError => {
+      callbacks.error = onError;
+      const wrapper = promiseWrapper as any;
+      delete wrapper.error;
+      if (!wrapper.success && !wrapper.fail && !wrapper.login) {
+        delete wrapper.rest;
+      }
+      return wrapper;
+    };
+
+    promiseWrapper.login = onLogin => {
+      callbacks.login = onLogin;
+      const wrapper = promiseWrapper as any;
+      delete wrapper.login;
+      if (!wrapper.success && !wrapper.fail && !wrapper.error) {
+        delete wrapper.rest;
+      }
+      return wrapper;
+    };
+
+    promiseWrapper.rest = onRest => {
+      callbacks.rest = onRest;
+      const wrapper = promiseWrapper as any;
+      delete wrapper.rest;
+      if (wrapper.success) delete wrapper.success;
+      if (wrapper.fail) delete wrapper.fail;
+      if (wrapper.error) delete wrapper.error;
+      if (wrapper.login) delete wrapper.login;
+      return wrapper;
     };
 
     return {
       promiseWrapper,
+      promiseRes,
+      promiseRej,
       callbacks
     };
   }
 
-  public setting (config: Config) {
+  public setting (config: InitConfig) {
     if (!config) return this._logger.logWarn('setting method required correct parameters!');
     this._config = { ...this._config, ...config };
-    this._handleRes = genhandleRes(this._config);
   }
 
-  public request <T>(options: Options): PromiseWrapper<T, ResObj, ResObj, ResObj, ErrorRes> {
+  public request <T>(options: Options<T>): PromiseWrapper<T> & Promise<T | ParseError> {
     options.withCredentials = typeof options.withCredentials === 'boolean' ? options.withCredentials : true;
     options.headers = options.headers || {};
-    options.headers['Accept'] = '*/*';
-    const { success, fail, login, error } = options;
+    options.headers['Accept'] = options.headers['Accept'] || '*/*';
+    const {
+      onSuccess: initSuccess,
+      onFail: initFail,
+      onLogin: initLogin,
+      onError: initError,
+      isSuccess: initIsSuccess,
+      isFail: initIsFail,
+      isLogin: initIsLogin,
+      isError: initIsError
+    } = this._config;
+    const { onSuccess, onFail, onLogin, onError, isSuccess, isFail, isLogin, isError } = options;
 
     const {
       promiseWrapper,
+      promiseRes,
+      promiseRej,
       callbacks: cb
-    } = this._constructPromise();
+    } = this._constructPromise<T>();
 
-    this.axios(options).then(response => {
-      const { status, data, request } = response;
-      const url = request.responseURL;
+    this.axios(options).then(async response => {
+      try {
+        const { status, data } = response;
 
-      if (+status === 200) {
-        return this._handleRes({
-          res: data,
-          success: res => {
-            this._logger.logInfo(`Success - ${url}`);
-            return success ? success(res) : cb.success(res);
-          },
-          fail: res => {
-            this._logger.logWarn(`Failed - ${url}`);
-            return fail ? fail(res) : cb.fail(res);
-          },
-          error: err => {
-            const errRes = this._handleError({
-              status,
-              netWorkError: false,
-              data: {
-                options,
-                res: err,
-                stack: (err && err.stack) || '',
-                message: (err && err.message) || ''
-              }
-            });
-            return error ? error(errRes) : cb.error(errRes);
-          },
-          login: res => login ? login(res) : cb.login(res),
-          thenable: cb.thenable
-        });
-      } else {
-        return cb.error(this._handleError({
-          status,
-          netWorkError: false,
-          data: {
-            options
+        const callbacks = {
+          success: cb.success ?? cb.rest ?? onSuccess ?? initSuccess ?? ((v: T) => v),
+          fail: cb.fail ?? cb.rest ?? onFail ?? initFail ?? ((v: T) => v),
+          error: cb.error ?? cb.rest ?? onError ?? initError ?? ((v: T) => v),
+          login: cb.login ?? cb.rest ?? onLogin ?? initLogin ?? ((v: T) => v),
+        };
+
+        const rules = {
+          success: isSuccess ?? initIsSuccess,
+          fail: isFail ?? initIsFail,
+          login: isLogin ?? initIsLogin,
+          error: isError ?? initIsError,
+        };
+  
+        const doSuccess = rules.success?.(data, status);
+        const doFail = rules.fail?.(data, status);
+        const doLogin = rules.login?.(data, status);
+        const doError = rules.error?.(data, status);
+  
+        let res = data;
+        if (typeof data === 'string') {
+          try {
+            res = JSON.parse(res) as Record<string, any>;
+          } catch (err) {
+            this._logger.logInfo(err as Error);
           }
-        }));
-      }
-    }).catch(err => {
-      this._logger.logErr(`Error - ${err}`);
-      const errRes = this._handleError({
-        status: err && +err.status === 200 ? 200 : 500,
-        netWorkError: err.status >= 400 && err.status < 500,
-        data: {
-          options,
-          err,
-          stack: (err && err.stack) || '',
-          message: (err && err.message) || ''
         }
-      });
-
-      return error ? error(errRes) : cb.error(errRes);
+        if (doSuccess) res = await Promise.resolve(callbacks.success(res));
+        else if (doLogin) res = await Promise.resolve(callbacks.login(res));
+        else if (doError) res = await Promise.resolve(callbacks.error(res));
+        else if (doFail) res = await Promise.resolve(callbacks.fail(res));
+        
+        promiseRes(res);
+      } catch (e) {
+        promiseRej(this.parseError(e));
+      }
+    }).catch(async err => {
+      this._logger.logErr(`Error - ${err}`);
+      try {
+        const handleErr = cb.error ?? cb.rest ?? onError ?? initError ?? ((e: ParseError) => e);
+        err = await Promise.resolve(handleErr(this.parseError(err)));
+        const hasHandler = !!(cb.error || cb.rest || onError || initError);
+        hasHandler ? promiseRes(err) : promiseRej(err);
+      } catch (e) {
+        promiseRej(this.parseError(e));
+      }
     });
 
     return promiseWrapper;

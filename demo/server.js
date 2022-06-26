@@ -1,5 +1,6 @@
 const path = require('path')
 const express = require('express')
+const bodyParser = require('body-parser')
 const webpack = require('webpack')
 const middleware = require('webpack-dev-middleware')
 const config = require('./config')
@@ -12,16 +13,22 @@ app.use(middleware(compiler, {
   logLevel: 'debug'
 }))
 
+app.use(require('body-parser').urlencoded({ extended: false }))
+
+app.use(bodyParser.json())
+
 app.post('/api', function (req, res, next) {
-  console.info('请求', req.url);
+  console.info(req.path, '请求');
+  res.status = 200;
   res.send({
     data: {
+      token: req.body.token,
       name: '请求demo',
       time: Date.now()
     },
-    code: 0
+    code: +req.body.code
   });
-  res.status = 200;
+  res.end()
 })
 
 app.use('*', function (req, res, next) {
