@@ -13,10 +13,8 @@ export interface InitConfig<T = any> {
   onSuccess?: (res: T) => any;
   onFail?: (res: T) => any;
   onLogin?: (res: T) => any;
-  onError?: (res: T | ParseError) => any;
+  onError?: (res: ParseError) => any;
   isSuccess?: (res: T, status: number) => boolean;
-  isFail?: (res: T, status: number) => boolean;
-  isError?: (res: T, status: number) => boolean;
   isLogin?: (res: T, status: number) => boolean;
   debug?: boolean;
   logLevel?: TlogLevelStr;
@@ -45,7 +43,7 @@ export interface PromiseWrapper<T, TSuc = T, TFail = T, TLogin = T, TErr = Parse
   success: <TResult, Delete extends string = (D | 'success')>(cb: (res: T) => TResult) => Omit<PromiseWrapper<T, TResult, TFail, TLogin, TErr, Delete>, 'fail' | 'error' | 'login' extends D ? Delete | 'rest' : Delete> & Promise<TResult | TFail | TLogin | TErr>;
   fail: <TResult, Delete extends string = (D | 'fail')>(cb: (res: T) => TResult) => Omit<PromiseWrapper<T, TSuc, TResult, TLogin, TErr, Delete>, 'success' | 'error' | 'login' extends D ? Delete | 'rest' : Delete> & Promise<TSuc | TResult | TLogin | TErr>;
   login: <TResult, Delete extends string = (D | 'login')>(cb: (res: T) => TResult) => Omit<PromiseWrapper<T, TSuc, TFail, TResult, TErr, Delete>, 'success' | 'fail' | 'error' extends D ? Delete | 'rest' : Delete> & Promise<TSuc | TFail | TResult | TErr>;
-  error: <TResult, Delete extends string = (D | 'error')>(cb: (res: T | ParseError) => TResult) => Omit<PromiseWrapper<T, TSuc, TFail, TLogin, TResult, Delete>, 'success' | 'fail' | 'login' extends D ? Delete | 'rest' : Delete> & Promise<TSuc | TFail | TLogin | TResult>;
+  error: <TResult, Delete extends string = (D | 'error')>(cb: (res: ParseError) => TResult) => Omit<PromiseWrapper<T, TSuc, TFail, TLogin, TResult, Delete>, 'success' | 'fail' | 'login' extends D ? Delete | 'rest' : Delete> & Promise<TSuc | TFail | TLogin | TResult>;
   rest: <TResult>(cb: (res: 'error' extends D ? T : T | ParseError ) => TResult) => Promise<
   'success' | 'fail' | 'error' | 'login' extends D
     ? TSuc | TFail | TErr | TLogin | TResult
@@ -211,11 +209,9 @@ export class Request {
       onLogin: initLogin,
       onError: initError,
       isSuccess: initIsSuccess,
-      isFail: initIsFail,
       isLogin: initIsLogin,
-      isError: initIsError
     } = this._config;
-    const { onSuccess, onFail, onLogin, onError, isSuccess, isFail, isLogin, isError } = options;
+    const { onSuccess, onFail, onLogin, onError, isSuccess, isLogin } = options;
 
     const {
       promiseWrapper,
@@ -231,34 +227,25 @@ export class Request {
         const callbacks = {
           success: cb.success ?? cb.rest ?? onSuccess ?? initSuccess ?? ((v: T) => v),
           fail: cb.fail ?? cb.rest ?? onFail ?? initFail ?? ((v: T) => v),
-          error: cb.error ?? cb.rest ?? onError ?? initError ?? ((v: T) => v),
           login: cb.login ?? cb.rest ?? onLogin ?? initLogin ?? ((v: T) => v),
         };
 
         const rules = {
           success: isSuccess ?? initIsSuccess,
-          fail: isFail ?? initIsFail,
           login: isLogin ?? initIsLogin,
-          error: isError ?? initIsError,
         };
   
         const doSuccess = rules.success?.(data, status);
-        const doFail = rules.fail?.(data, status);
         const doLogin = rules.login?.(data, status);
-        const doError = rules.error?.(data, status);
   
         let res = data;
-        if (typeof data === 'string') {
-          try {
-            res = JSON.parse(res) as Record<string, any>;
-          } catch (err) {
-            this._logger.logInfo(err as Error);
-          }
+        if (doLogin) {
+          res = await Promise.resolve(callbacks.login(res));
+        } else if (doSuccess) {
+          res = await Promise.resolve(callbacks.success(res));
+        } else {
+          res = await Promise.resolve(callbacks.fail(res));
         }
-        if (doSuccess) res = await Promise.resolve(callbacks.success(res));
-        else if (doLogin) res = await Promise.resolve(callbacks.login(res));
-        else if (doError) res = await Promise.resolve(callbacks.error(res));
-        else if (doFail) res = await Promise.resolve(callbacks.fail(res));
         
         promiseRes(res);
       } catch (e) {
