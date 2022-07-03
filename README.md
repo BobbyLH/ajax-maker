@@ -13,10 +13,8 @@
     onSuccess?: (res: T) => any;
     onFail?: (res: T) => any;
     onLogin?: (res: T) => any;
-    onError?: (res: T | ParseError) => any;
+    onError?: (res: ParseError) => any;
     isSuccess?: (res: T, status: number) => boolean;
-    isFail?: (res: T, status: number) => boolean;
-    isError?: (res: T, status: number) => boolean;
     isLogin?: (res: T, status: number) => boolean;
     debug?: boolean;
     logLevel?: TlogLevelStr;
@@ -31,8 +29,6 @@
   // axios is AxiosStatic
   const { request, setting, axios } = new Request({
     isSuccess: (res, status) => res.code === 0,
-    isFail: (res, status) => res.code !== 0,
-    isError: (res, status) => res.code === 500,
     isLogin: (res, status) => res.code === 50,
     onSuccess,
     onFail,
@@ -67,8 +63,7 @@
   request(
     {
       baseUrl: `https://api.com/getMessage`,
-      method: 'get',
-      isError: (res, status) => res.code === -1
+      method: 'get'
     }
   )
   .success(res => console.log(res))
