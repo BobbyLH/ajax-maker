@@ -9,8 +9,7 @@ const app = express()
 const { exec } = require('child_process')
 
 app.use(middleware(compiler, {
-  publicPath: '/',
-  logLevel: 'debug'
+  publicPath: '/'
 }))
 
 app.use(require('body-parser').urlencoded({ extended: false }))
@@ -18,17 +17,17 @@ app.use(require('body-parser').urlencoded({ extended: false }))
 app.use(bodyParser.json())
 
 app.post('/api', function (req, res, next) {
-  console.info(req.path, '请求');
-  res.status = 200;
-  res.send({
+  console.info('Request: ', req.path, req.body.code);
+  const isErr = req.body.code == 500;
+  res.status(isErr ? 500 : 200).send(isErr ? 'Internal Error' : {
     data: {
       token: req.body.token,
-      name: '请求demo',
+      name: 'demo results',
       time: Date.now()
     },
     code: +req.body.code
   });
-  res.end()
+  res.end();
 })
 
 app.use('*', function (req, res, next) {

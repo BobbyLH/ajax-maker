@@ -9,7 +9,7 @@ const reqBtn3 = document.createElement('button')
 const style = 'width: 150px; height: 30px; display: block; margin: 10px auto';
 
 let code = ''
-input.placeholder = '输入 code'
+input.placeholder = '输入 code (错误码500)'
 input.oninput = function (e) {
   code = e.target.value
 }
@@ -37,8 +37,6 @@ const onError = res => console.log('init error', res)
 const onLogin = res => console.log('init login', res)
 const { request } = new Request({
   isSuccess: (res, status) => res.code === 0,
-  isFail: (res, status) => res.code !== 0,
-  isError: (res, status) => res.code === 500,
   isLogin: (res, status) => res.code === 50,
   onSuccess,
   onFail,
@@ -70,8 +68,8 @@ function req1 () {
 }
 
 function req2 () {
-  const success = res => console.log('then', 123, res)
-  const error = res => console.log('catch', 789, res)
+  const success = res => console.log('promise then', res)
+  const error = res => console.log('promise catch', res)
 
   request({
     baseURL: '/api',
