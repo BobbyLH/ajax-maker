@@ -1,6 +1,7 @@
 import axios, { AxiosStatic, AxiosRequestConfig } from 'axios';
 import { Logger } from 'peeler-js';
 
+import type { AxiosError } from 'axios';
 import type { TlogLevelStr } from 'peeler-js/es/logger';
 
 export interface ParseError {
@@ -220,20 +221,21 @@ export class Request {
       callbacks: cb
     } = this._constructPromise<T>();
 
+    const callbacks = {
+      success: cb.success ?? cb.rest ?? onSuccess ?? initSuccess ?? ((v: T) => v),
+      fail: cb.fail ?? cb.rest ?? onFail ?? initFail ?? ((v: T) => v),
+      login: cb.login ?? cb.rest ?? onLogin ?? initLogin ?? ((v: T) => v),
+      error: cb.error ?? cb.rest ?? onError ?? initError ?? ((e: ParseError) => e)
+    };
+
+    const rules = {
+      success: isSuccess ?? initIsSuccess,
+      login: isLogin ?? initIsLogin,
+    };
+
     this.axios(options).then(async response => {
       try {
         const { status, data } = response;
-
-        const callbacks = {
-          success: cb.success ?? cb.rest ?? onSuccess ?? initSuccess ?? ((v: T) => v),
-          fail: cb.fail ?? cb.rest ?? onFail ?? initFail ?? ((v: T) => v),
-          login: cb.login ?? cb.rest ?? onLogin ?? initLogin ?? ((v: T) => v),
-        };
-
-        const rules = {
-          success: isSuccess ?? initIsSuccess,
-          login: isLogin ?? initIsLogin,
-        };
   
         const doSuccess = rules.success?.(data, status);
         const doLogin = rules.login?.(data, status);
@@ -251,13 +253,22 @@ export class Request {
       } catch (e) {
         promiseRej(this.parseError(e));
       }
-    }).catch(async err => {
+    }).catch(async (err: AxiosError<any>) => {
       this._logger.logErr(`Error - ${err}`);
+      const status = err.response?.status;
+      const data = err.response?.data;
+      const doLogin = rules.login?.(data, status ?? 500);
+
       try {
-        const handleErr = cb.error ?? cb.rest ?? onError ?? initError ?? ((e: ParseError) => e);
-        err = await Promise.resolve(handleErr(this.parseError(err)));
-        const hasHandler = !!(cb.error || cb.rest || onError || initError);
-        hasHandler ? promiseRes(err) : promiseRej(err);
+        let res = data;
+        if (doLogin) {
+          res = await Promise.resolve(callbacks.login(res));
+          promiseRes(res);
+        } else {
+          res = await Promise.resolve(callbacks.error(this.parseError(err)));
+          const hasChainHandler = !!(cb.error || cb.rest);
+          hasChainHandler ? promiseRes(res) : promiseRej(res);
+        }
       } catch (e) {
         promiseRej(this.parseError(e));
       }
