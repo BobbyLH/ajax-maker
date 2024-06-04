@@ -221,13 +221,6 @@ export class Request {
       callbacks: cb
     } = this._constructPromise<T>();
 
-    const callbacks = {
-      success: cb.success ?? cb.rest ?? onSuccess ?? initSuccess ?? ((v: T) => v),
-      fail: cb.fail ?? cb.rest ?? onFail ?? initFail ?? ((v: T) => v),
-      login: cb.login ?? cb.rest ?? onLogin ?? initLogin ?? ((v: T) => v),
-      error: cb.error ?? cb.rest ?? onError ?? initError ?? ((e: ParseError) => e)
-    };
-
     const rules = {
       success: isSuccess ?? initIsSuccess,
       login: isLogin ?? initIsLogin,
@@ -237,6 +230,12 @@ export class Request {
       try {
         const { status, data } = response;
   
+        const callbacks = {
+          success: cb.success ?? cb.rest ?? onSuccess ?? initSuccess ?? ((v: T) => v),
+          fail: cb.fail ?? cb.rest ?? onFail ?? initFail ?? ((v: T) => v),
+          login: cb.login ?? cb.rest ?? onLogin ?? initLogin ?? ((v: T) => v)
+        };
+
         const doSuccess = rules.success?.(data, status);
         const doLogin = rules.login?.(data, status);
   
@@ -255,6 +254,12 @@ export class Request {
       }
     }).catch(async (err: AxiosError<any>) => {
       this._logger.logErr(`Error - ${err}`);
+
+      const callbacks = {
+        login: cb.login ?? cb.rest ?? onLogin ?? initLogin ?? ((v: T) => v),
+        error: cb.error ?? cb.rest ?? onError ?? initError ?? ((e: ParseError) => e)
+      };
+
       const status = err.response?.status;
       const data = err.response?.data;
       const doLogin = rules.login?.(data, status ?? 500);
