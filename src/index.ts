@@ -10,13 +10,15 @@ export interface ParseError {
   stack: string;
 }
 
+export type AxiosResHeaders = RawAxiosResponseHeaders | AxiosResponseHeaders;
+
 export interface InitConfig<T = any> {
-  onSuccess?: (res: T, headers: RawAxiosResponseHeaders | AxiosResponseHeaders) => any;
-  onFail?: (res: T, headers: RawAxiosResponseHeaders | AxiosResponseHeaders) => any;
-  onLogin?: (res: T, headers: RawAxiosResponseHeaders | AxiosResponseHeaders) => any;
-  onError?: (res: ParseError, headers: RawAxiosResponseHeaders | AxiosResponseHeaders) => any;
-  isSuccess?: (res: T, status: number, headers: RawAxiosResponseHeaders | AxiosResponseHeaders) => boolean;
-  isLogin?: (res: T, status: number, headers: RawAxiosResponseHeaders | AxiosResponseHeaders) => boolean;
+  onSuccess?: (res: T, headers: AxiosResHeaders) => any;
+  onFail?: (res: T, headers: AxiosResHeaders) => any;
+  onLogin?: (res: T, headers: AxiosResHeaders) => any;
+  onError?: (res: ParseError, headers: AxiosResHeaders) => any;
+  isSuccess?: (res: T, status: number, headers: AxiosResHeaders) => boolean;
+  isLogin?: (res: T, status: number, headers: AxiosResHeaders) => boolean;
   debug?: boolean;
   logLevel?: TlogLevelStr;
 }
@@ -41,11 +43,11 @@ export type ErrorRes = {
 };
 
 export interface PromiseWrapper<T, TSuc = T, TFail = T, TLogin = T, TErr = ParseError, D extends string = ''> {
-  success: <TResult, Delete extends string = (D | 'success')>(cb: (res: T) => TResult) => Omit<PromiseWrapper<T, TResult, TFail, TLogin, TErr, Delete>, 'fail' | 'error' | 'login' extends D ? Delete | 'rest' : Delete> & Promise<TResult | TFail | TLogin | TErr>;
-  fail: <TResult, Delete extends string = (D | 'fail')>(cb: (res: T) => TResult) => Omit<PromiseWrapper<T, TSuc, TResult, TLogin, TErr, Delete>, 'success' | 'error' | 'login' extends D ? Delete | 'rest' : Delete> & Promise<TSuc | TResult | TLogin | TErr>;
-  login: <TResult, Delete extends string = (D | 'login')>(cb: (res: T) => TResult) => Omit<PromiseWrapper<T, TSuc, TFail, TResult, TErr, Delete>, 'success' | 'fail' | 'error' extends D ? Delete | 'rest' : Delete> & Promise<TSuc | TFail | TResult | TErr>;
-  error: <TResult, Delete extends string = (D | 'error')>(cb: (res: ParseError) => TResult) => Omit<PromiseWrapper<T, TSuc, TFail, TLogin, TResult, Delete>, 'success' | 'fail' | 'login' extends D ? Delete | 'rest' : Delete> & Promise<TSuc | TFail | TLogin | TResult>;
-  rest: <TResult>(cb: (res: 'error' extends D ? T : T | ParseError ) => TResult) => Promise<
+  success: <TResult, Delete extends string = (D | 'success')>(cb: (res: T, headers: AxiosResHeaders) => TResult) => Omit<PromiseWrapper<T, TResult, TFail, TLogin, TErr, Delete>, 'fail' | 'error' | 'login' extends D ? Delete | 'rest' : Delete> & Promise<TResult | TFail | TLogin | TErr>;
+  fail: <TResult, Delete extends string = (D | 'fail')>(cb: (res: T, headers: AxiosResHeaders) => TResult) => Omit<PromiseWrapper<T, TSuc, TResult, TLogin, TErr, Delete>, 'success' | 'error' | 'login' extends D ? Delete | 'rest' : Delete> & Promise<TSuc | TResult | TLogin | TErr>;
+  login: <TResult, Delete extends string = (D | 'login')>(cb: (res: T, headers: AxiosResHeaders) => TResult) => Omit<PromiseWrapper<T, TSuc, TFail, TResult, TErr, Delete>, 'success' | 'fail' | 'error' extends D ? Delete | 'rest' : Delete> & Promise<TSuc | TFail | TResult | TErr>;
+  error: <TResult, Delete extends string = (D | 'error')>(cb: (res: ParseError, headers: AxiosResHeaders) => TResult) => Omit<PromiseWrapper<T, TSuc, TFail, TLogin, TResult, Delete>, 'success' | 'fail' | 'login' extends D ? Delete | 'rest' : Delete> & Promise<TSuc | TFail | TLogin | TResult>;
+  rest: <TResult>(cb: (res: 'error' extends D ? T : T | ParseError, headers: AxiosResHeaders) => TResult) => Promise<
   'success' | 'fail' | 'error' | 'login' extends D
     ? TSuc | TFail | TErr | TLogin | TResult
     : 'fail' | 'error' | 'login' extends D
