@@ -8,14 +8,15 @@
 ## API
 ```ts
   import Request from 'ajax-maker';
+  import type { RawAxiosResponseHeaders, AxiosResponseHeaders } from 'axios';
 
   interface InitConfig<T = any> {
-    onSuccess?: (res: T) => any;
-    onFail?: (res: T) => any;
-    onLogin?: (res: T) => any;
-    onError?: (res: ParseError) => any;
-    isSuccess?: (res: T, status: number) => boolean;
-    isLogin?: (res: T, status: number) => boolean;
+    onSuccess?: (res: T, headers: RawAxiosResponseHeaders | AxiosResponseHeaders) => any;
+    onFail?: (res: T, headers: RawAxiosResponseHeaders | AxiosResponseHeaders) => any;
+    onLogin?: (res: T, headers: RawAxiosResponseHeaders | AxiosResponseHeaders) => any;
+    onError?: (res: ParseError, headers: RawAxiosResponseHeaders | AxiosResponseHeaders) => any;
+    isSuccess?: (res: T, status: number, headers: RawAxiosResponseHeaders | AxiosResponseHeaders) => boolean;
+    isLogin?: (res: T, status: number, headers: RawAxiosResponseHeaders | AxiosResponseHeaders) => boolean;
     debug?: boolean;
     logLevel?: TlogLevelStr;
   }
@@ -28,8 +29,8 @@
   // initialize instance
   // axios is AxiosStatic
   const { request, setting, axios } = new Request({
-    isSuccess: (res, status) => res.code === 0,
-    isLogin: (res, status) => res.code === 50,
+    isSuccess: (res, status, headers) => res.code === 0,
+    isLogin: (res, status, headers) => res.code === 50,
     onSuccess,
     onFail,
     onError,
@@ -55,7 +56,7 @@
       onFail(res => console.log(res)),
       onError: res => console.log(res),
       onLogin: err => console.error(err),
-      isLogin: (res, status) => status === 401
+      isLogin: (res, status, headers) => status === 401
     }
   )
 

@@ -1,7 +1,7 @@
 import axios, { AxiosStatic, AxiosRequestConfig } from 'axios';
 import { Logger } from 'peeler-js';
 
-import type { AxiosError } from 'axios';
+import type { AxiosError, RawAxiosResponseHeaders, AxiosResponseHeaders } from 'axios';
 import type { TlogLevelStr } from 'peeler-js/es/logger';
 
 export interface ParseError {
@@ -11,12 +11,12 @@ export interface ParseError {
 }
 
 export interface InitConfig<T = any> {
-  onSuccess?: (res: T) => any;
-  onFail?: (res: T) => any;
-  onLogin?: (res: T) => any;
-  onError?: (res: ParseError) => any;
-  isSuccess?: (res: T, status: number) => boolean;
-  isLogin?: (res: T, status: number) => boolean;
+  onSuccess?: (res: T, headers: RawAxiosResponseHeaders | AxiosResponseHeaders) => any;
+  onFail?: (res: T, headers: RawAxiosResponseHeaders | AxiosResponseHeaders) => any;
+  onLogin?: (res: T, headers: RawAxiosResponseHeaders | AxiosResponseHeaders) => any;
+  onError?: (res: ParseError, headers: RawAxiosResponseHeaders | AxiosResponseHeaders) => any;
+  isSuccess?: (res: T, status: number, headers: RawAxiosResponseHeaders | AxiosResponseHeaders) => boolean;
+  isLogin?: (res: T, status: number, headers: RawAxiosResponseHeaders | AxiosResponseHeaders) => boolean;
   debug?: boolean;
   logLevel?: TlogLevelStr;
 }
@@ -228,7 +228,7 @@ export class Request {
 
     this.axios(options).then(async response => {
       try {
-        const { status, data } = response;
+        const { status, data, headers } = response;
   
         const callbacks = {
           success: cb.success ?? cb.rest ?? onSuccess ?? initSuccess ?? ((v: T) => v),
@@ -236,16 +236,16 @@ export class Request {
           login: cb.login ?? cb.rest ?? onLogin ?? initLogin ?? ((v: T) => v)
         };
 
-        const doSuccess = rules.success?.(data, status);
-        const doLogin = rules.login?.(data, status);
+        const doSuccess = rules.success?.(data, status, headers);
+        const doLogin = rules.login?.(data, status, headers);
   
         let res = data;
         if (doLogin) {
-          res = await Promise.resolve(callbacks.login(res));
+          res = await Promise.resolve(callbacks.login(res, headers));
         } else if (doSuccess) {
-          res = await Promise.resolve(callbacks.success(res));
+          res = await Promise.resolve(callbacks.success(res, headers));
         } else {
-          res = await Promise.resolve(callbacks.fail(res));
+          res = await Promise.resolve(callbacks.fail(res, headers));
         }
         
         promiseRes(res);
@@ -262,15 +262,16 @@ export class Request {
 
       const status = err.response?.status;
       const data = err.response?.data;
-      const doLogin = rules.login?.(data, status ?? 500);
+      const headers = err.response?.headers ?? {};
+      const doLogin = rules.login?.(data, status ?? 500, headers);
 
       try {
         let res = data;
         if (doLogin) {
-          res = await Promise.resolve(callbacks.login(res));
+          res = await Promise.resolve(callbacks.login(res, headers));
           promiseRes(res);
         } else {
-          res = await Promise.resolve(callbacks.error(this.parseError(err)));
+          res = await Promise.resolve(callbacks.error(this.parseError(err), headers));
           const hasChainHandler = !!(cb.error || cb.rest);
           hasChainHandler ? promiseRes(res) : promiseRej(res);
         }
