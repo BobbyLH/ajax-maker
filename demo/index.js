@@ -32,23 +32,27 @@ reqBtn3.style = style
 rootDom.appendChild(reqBtn3)
 
 const onSuccess = res => console.log('init success', res)
-const onFail = res => console.log('init fail', res)
+const onFailure = res => console.log('init failure', res)
 const onError = res => console.log('init error', res)
 const onLogin = res => console.log('init login', res)
+const onTimeout = res => console.log('init timeout', res)
 const { request } = new Request({
   isSuccess: (res, status) => res.code === 0,
   isLogin: (res, status) => res.code === 50,
   onSuccess,
-  onFail,
+  onFailure,
   onError,
-  onLogin
+  onLogin,
+  onTimeout,
+  timeout: 3000,
 });
 
 function req1 () {
   const onSuccess = res => console.log('callback success', res)
-  const onFail = res => console.log('callback fail', res)
+  const onFailure = res => console.log('callback failure', res)
   const onError = res => console.log('callback error', res)
   const onLogin = res => console.log('callback login', res)
+  const onTimeout = res => console.log('callback timeout', res)
 
   request({
     baseURL: '/api',
@@ -62,8 +66,9 @@ function req1 () {
     },
     onSuccess,
     onLogin,
-    onFail,
-    onError
+    onFailure,
+    onError,
+    onTimeout
   }).then(res => console.log('callback then', 666, res))
 }
 
@@ -88,9 +93,10 @@ function req2 () {
 
 function req3 () {
   const success = res => console.log('chain success', res)
-  const fail = res => console.log('chain fail', res)
+  const failure = res => console.log('chain failure', res)
   const error = res => console.log('chain error', res)
   const login = res => console.log('chain login', res)
+  const timeout = res => console.log('chain timeout', res)
   const rest = res => console.log('chain rest', res)
 
   request({
@@ -106,7 +112,8 @@ function req3 () {
   })
   .success(success)
   .login(login)
-  .fail(fail)
+  .failure(failure)
+  // .timeout(timeout)
   .rest(rest)
   // .error(error)
 }

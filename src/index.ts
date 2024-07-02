@@ -1,31 +1,89 @@
 import axios, { AxiosStatic, AxiosRequestConfig } from 'axios';
 import { Logger } from 'peeler-js';
 
-import type { AxiosError, RawAxiosResponseHeaders, AxiosResponseHeaders } from 'axios';
+import type { AxiosError, RawAxiosResponseHeaders, AxiosResponseHeaders, RawAxiosRequestHeaders, AxiosRequestHeaders, AxiosResponse } from 'axios';
 import type { TlogLevelStr } from 'peeler-js/es/logger';
 
-export interface ParseError {
-  name: string;
+export type ParsedError<T extends string = string> = {
+  name: T;
   message: string;
   stack: string;
+};
+
+export type CheckNever<T> = T extends never ? true : false;
+
+export type CheckAny<T> = CheckNever<T> extends false ? false : true;
+
+export type WithFailData<T = undefined> = T extends null ? null | undefined : T | null | undefined;
+
+export interface ChainName {
+  // eslint-disable-next-line max-len
+  all: ChainName['success'] | ChainName['failure'] | ChainName['error'] | ChainName['login'] | ChainName['timeout'];
+  // one
+  success: 'success';
+  failure: 'failure';
+  error: 'error';
+  login: 'login';
+  timeout: 'timeout';
+  // n - 1
+  withoutS: Exclude<ChainName['all'], 'success'>;
+  withoutF: Exclude<ChainName['all'], 'failure'>;
+  withoutE: Exclude<ChainName['all'], 'error'>;
+  withoutL: Exclude<ChainName['all'], 'login'>;
+  withoutT: Exclude<ChainName['all'], 'timeout'>;
+  // n - 2
+  withoutSF: Exclude<ChainName['all'], 'success' | 'failure'>;
+  withoutSE: Exclude<ChainName['all'], 'success' | 'error'>;
+  withoutSL: Exclude<ChainName['all'], 'success' | 'login'>;
+  withoutST: Exclude<ChainName['all'], 'success' | 'timeout'>;
+  withoutFE: Exclude<ChainName['all'], 'failure' | 'error'>;
+  withoutFL: Exclude<ChainName['all'], 'failure' | 'login'>;
+  withoutFT: Exclude<ChainName['all'], 'failure' | 'timeout'>;
+  withoutEL: Exclude<ChainName['all'], 'error' | 'login'>;
+  withoutET: Exclude<ChainName['all'], 'error' | 'timeout'>;
+  withoutLT: Exclude<ChainName['all'], 'login' | 'timeout'>;
+  // two
+  withSF: ChainName['success'] | ChainName['failure'];
+  withSE: ChainName['success'] | ChainName['error'];
+  withSL: ChainName['success'] | ChainName['login'];
+  withST: ChainName['success'] | ChainName['timeout'];
+  withFE: ChainName['failure'] | ChainName['error'];
+  withFL: ChainName['failure'] | ChainName['login'];
+  withFT: ChainName['failure'] | ChainName['timeout'];
+  withEL: ChainName['error'] | ChainName['login'];
+  withET: ChainName['error'] | ChainName['timeout'];
+  withLT: ChainName['login'] | ChainName['timeout'];
 }
 
+export interface ChainReturn<T> {
+  success: T;
+  failure: T;
+  error: ParsedError;
+  login: T;
+  timeout: ParsedError<'timeout'>;
+  successOrFailure: T;
+  all: T | ParsedError | ParsedError<'timeout'>;
+}
+
+export type AxiosReqHeaders = RawAxiosRequestHeaders | AxiosRequestHeaders;
 export type AxiosResHeaders = RawAxiosResponseHeaders | AxiosResponseHeaders;
 
 export interface InitConfig<T = any> {
-  onSuccess?: (res: T, headers: AxiosResHeaders) => any;
-  onFail?: (res: T, headers: AxiosResHeaders) => any;
-  onLogin?: (res: T, headers: AxiosResHeaders) => any;
-  onError?: (res: ParseError, headers: AxiosResHeaders) => any;
+  onSuccess?: (res: ChainReturn<T>['success'], headers: AxiosResHeaders) => any;
+  onFailure?: (res: ChainReturn<T>['failure'], headers: AxiosResHeaders) => any;
+  onLogin?: (res: ChainReturn<T>['login'], headers: AxiosResHeaders) => any;
+  onError?: (res: ChainReturn<T>['error'], headers: AxiosReqHeaders | AxiosResHeaders) => any;
+  onTimeout?: (e: ChainReturn<T>['timeout'], headers: AxiosReqHeaders) => any;
   isSuccess?: (res: T, status: number, headers: AxiosResHeaders) => boolean;
   isLogin?: (res: T, status: number, headers: AxiosResHeaders) => boolean;
+  timeout?: number;
   debug?: boolean;
   logLevel?: TlogLevelStr;
 }
 
-export interface Options<T> extends Omit<InitConfig<T>, 'debug' | 'logLevel'>, AxiosRequestConfig {}
+export interface Options<T> extends Omit<InitConfig<T>, 'debug' | 'logLevel'>, AxiosRequestConfig { }
 
-export type FactoryType = 'success' | 'fail' | 'error' | 'login';
+export type FactoryType = 'success' | 'failure' | 'error' | 'login';
 
 export type ErrorParams = {
   status: number;
@@ -42,46 +100,272 @@ export type ErrorRes = {
   data: ErrorData;
 };
 
-export interface PromiseWrapper<T, TSuc = T, TFail = T, TLogin = T, TErr = ParseError, D extends string = ''> {
-  success: <TResult, Delete extends string = (D | 'success')>(cb: (res: T, headers: AxiosResHeaders) => TResult) => Omit<PromiseWrapper<T, TResult, TFail, TLogin, TErr, Delete>, 'fail' | 'error' | 'login' extends D ? Delete | 'rest' : Delete> & Promise<TResult | TFail | TLogin | TErr>;
-  fail: <TResult, Delete extends string = (D | 'fail')>(cb: (res: T, headers: AxiosResHeaders) => TResult) => Omit<PromiseWrapper<T, TSuc, TResult, TLogin, TErr, Delete>, 'success' | 'error' | 'login' extends D ? Delete | 'rest' : Delete> & Promise<TSuc | TResult | TLogin | TErr>;
-  login: <TResult, Delete extends string = (D | 'login')>(cb: (res: T, headers: AxiosResHeaders) => TResult) => Omit<PromiseWrapper<T, TSuc, TFail, TResult, TErr, Delete>, 'success' | 'fail' | 'error' extends D ? Delete | 'rest' : Delete> & Promise<TSuc | TFail | TResult | TErr>;
-  error: <TResult, Delete extends string = (D | 'error')>(cb: (res: ParseError, headers: AxiosResHeaders) => TResult) => Omit<PromiseWrapper<T, TSuc, TFail, TLogin, TResult, Delete>, 'success' | 'fail' | 'login' extends D ? Delete | 'rest' : Delete> & Promise<TSuc | TFail | TLogin | TResult>;
-  rest: <TResult>(cb: (res: 'error' extends D ? T : T | ParseError, headers: AxiosResHeaders) => TResult) => Promise<
-  'success' | 'fail' | 'error' | 'login' extends D
-    ? TSuc | TFail | TErr | TLogin | TResult
-    : 'fail' | 'error' | 'login' extends D
-    ? TFail | TErr | TLogin | TResult
-    : 'success' | 'error' | 'login' extends D
-    ? TSuc | TErr | TLogin | TResult
-    : 'success' | 'fail' | 'login' extends D
-    ? TSuc | TFail | TLogin | TResult
-    : 'success' | 'fail' | 'error' extends D
-    ? TSuc | TFail | TErr | TResult
-    : 'success' | 'fail' extends D
-    ? TSuc | TFail | TResult
-    : 'success' | 'error' extends D
-    ? TSuc | TErr | TResult
-    : 'success' | 'login' extends D
-    ? TSuc | TLogin | TResult
-    : 'fail' | 'error' extends D
-    ? TFail | TErr | TResult
-    : 'fail' | 'login' extends D
-    ? TFail | TLogin | TResult
-    : 'error' | 'login' extends D
-    ? TErr | TLogin | TResult
-    : 'success' extends D
-    ? TSuc | TResult
-    : 'fail' extends D
-    ? TFail | TResult
-    : 'error' extends D
-    ? TErr | TResult
-    : 'login' extends D
-    ? TLogin | TResult
-    : TResult
-  >;
+export type RestScopeName = ChainName['all'];
+
+export type RestScope = RestScopeName[];
+
+type Tuple2Record<T extends readonly any[]> = {
+  [Value in T[number]]: Value
+};
+
+export interface PromiseWrapper<
+  T,
+  TSuc = ChainReturn<T>['success'],
+  TFail = ChainReturn<T>['failure'],
+  TErr = ChainReturn<T>['error'],
+  TLogin = ChainReturn<T>['login'],
+  TTime = ChainReturn<T>['timeout'],
+  HadCall extends string = ''
+> {
+  success<TRes = TSuc, Delete extends string = HadCall | 'success'>(
+    onSuccess?: (res: ChainReturn<T>['success'], headers: AxiosResHeaders) => TRes,
+  ): Omit<
+    PromiseWrapper<T, TRes, TFail, TErr, TLogin, TTime, Delete>,
+    ChainName['withoutS'] extends HadCall ? Delete | 'rest' : Delete
+  > &
+    Promise<TRes | TFail | TErr | TLogin | TTime>;
+  failure<TRes = TFail, Delete extends string = HadCall | 'fail'>(
+    onFailure?: (res: ChainReturn<T>['failure'], headers: AxiosResHeaders) => TRes,
+  ): Omit<
+    PromiseWrapper<T, TSuc, TRes, TErr, TLogin, TTime, Delete>,
+    ChainName['withoutF'] extends HadCall ? Delete | 'rest' : Delete
+  > &
+    Promise<TSuc | TRes | TErr | TLogin | TTime>;
+  error<TRes = TErr, Delete extends string = HadCall | 'error'>(
+    onError?: (err: ChainReturn<T>['error'], headers: AxiosReqHeaders | AxiosResHeaders) => TRes,
+  ): Omit<
+    PromiseWrapper<T, TSuc, TFail, TRes, TLogin, TTime, Delete>,
+    ChainName['withoutE'] extends HadCall ? Delete | 'rest' : Delete
+  > &
+    Promise<TSuc | TFail | TRes | TLogin | TTime>;
+  login<TRes = TLogin, Delete extends string = HadCall | 'login'>(
+    onLogin?: (res: ChainReturn<T>['login'], headers: AxiosResHeaders) => TRes,
+  ): Omit<
+    PromiseWrapper<T, TSuc, TFail, TErr, TRes, TTime, Delete>,
+    ChainName['withoutL'] extends HadCall ? Delete | 'rest' : Delete
+  > &
+    Promise<TSuc | TFail | TErr | TRes | TTime>;
+  timeout<TRes = TTime, Delete extends string = HadCall | 'timeout'>(
+    onTimeout?: (err: ChainReturn<T>['timeout'], headers: AxiosReqHeaders) => TRes,
+  ): Omit<
+    PromiseWrapper<T, TSuc, TFail, TErr, TLogin, TRes, Delete>,
+    ChainName['withoutT'] extends HadCall ? Delete | 'rest' : Delete
+  > &
+    Promise<TSuc | TFail | TErr | TLogin | TRes>;
+  rest<
+    TRes = TSuc | TFail | TErr | TLogin | TTime,
+    TRestScope extends RestScope = ['success', 'failure', 'login', 'error', 'timeout'],
+    TRestScopeName extends RestScopeName = keyof Tuple2Record<TRestScope>,
+    THadCallWithNotInScope extends string = HadCall | Exclude<RestScopeName, TRestScopeName>,
+    Delete extends string = HadCall | TRestScopeName | 'rest'
+  >(
+    onRest?: (
+      val: ChainName['all'] extends THadCallWithNotInScope
+        ? unknown
+        : ChainName['withoutS'] extends THadCallWithNotInScope
+        ? ChainReturn<T>['success']
+        : ChainName['withoutF'] extends THadCallWithNotInScope
+        ? ChainReturn<T>['failure']
+        : ChainName['withoutE'] extends THadCallWithNotInScope
+        ? ChainReturn<T>['error']
+        : ChainName['withoutL'] extends THadCallWithNotInScope
+        ? ChainReturn<T>['login']
+        : ChainName['withoutT'] extends THadCallWithNotInScope
+        ? ChainReturn<T>['timeout']
+        : ChainName['withoutSF'] extends THadCallWithNotInScope
+        ? ChainReturn<T>['successOrFailure']
+        : ChainName['withoutSE'] extends THadCallWithNotInScope
+        ? ChainReturn<T>['success' | 'error']
+        : ChainName['withoutSL'] extends THadCallWithNotInScope
+        ? ChainReturn<T>['success' | 'login']
+        : ChainName['withoutST'] extends THadCallWithNotInScope
+        ? ChainReturn<T>['success' | 'timeout']
+        : ChainName['withoutFE'] extends THadCallWithNotInScope
+        ? ChainReturn<T>['failure' | 'error']
+        : ChainName['withoutFL'] extends THadCallWithNotInScope
+        ? ChainReturn<T>['failure' | 'login']
+        : ChainName['withoutFT'] extends THadCallWithNotInScope
+        ? ChainReturn<T>['failure' | 'timeout']
+        : ChainName['withoutEL'] extends THadCallWithNotInScope
+        ? ChainReturn<T>['error' | 'login']
+        : ChainName['withoutET'] extends THadCallWithNotInScope
+        ? ChainReturn<T>['error' | 'timeout']
+        : ChainName['withoutLT'] extends THadCallWithNotInScope
+        ? ChainReturn<T>['login' | 'timeout']
+        : ChainName['withSF'] extends THadCallWithNotInScope
+        ? ChainReturn<T>['error' | 'login' | 'timeout']
+        : ChainName['withSE'] extends THadCallWithNotInScope
+        ? ChainReturn<T>['failure' | 'login' | 'timeout']
+        : ChainName['withSL'] extends THadCallWithNotInScope
+        ? ChainReturn<T>['failure' | 'error' | 'timeout']
+        : ChainName['withST'] extends THadCallWithNotInScope
+        ? ChainReturn<T>['failure' | 'error' | 'login']
+        : ChainName['withFE'] extends THadCallWithNotInScope
+        ? ChainReturn<T>['success' | 'login' | 'timeout']
+        : ChainName['withFL'] extends THadCallWithNotInScope
+        ? ChainReturn<T>['success' | 'error' | 'timeout']
+        : ChainName['withFT'] extends THadCallWithNotInScope
+        ? ChainReturn<T>['success' | 'error' | 'login']
+        : ChainName['withEL'] extends THadCallWithNotInScope
+        ? ChainReturn<T>['successOrFailure' | 'timeout']
+        : ChainName['withET'] extends THadCallWithNotInScope
+        ? ChainReturn<T>['successOrFailure' | 'login']
+        : ChainName['withLT'] extends THadCallWithNotInScope
+        ? ChainReturn<T>['successOrFailure' | 'error']
+        : ChainName['success'] extends THadCallWithNotInScope
+        ? ChainReturn<T>['failure' | 'error' | 'login' | 'timeout']
+        : ChainName['failure'] extends THadCallWithNotInScope
+        ? ChainReturn<T>['success' | 'error' | 'login' | 'timeout']
+        : ChainName['error'] extends THadCallWithNotInScope
+        ? ChainReturn<T>['successOrFailure' | 'login' | 'timeout']
+        : ChainName['login'] extends THadCallWithNotInScope
+        ? ChainReturn<T>['successOrFailure' | 'error' | 'timeout']
+        : ChainName['timeout'] extends THadCallWithNotInScope
+        ? ChainReturn<T>['successOrFailure' | 'error' | 'login']
+        : ChainReturn<T>['all'],
+      headers: AxiosReqHeaders | AxiosResHeaders
+    ) => TRes,
+    scope?: TRestScope,
+  ): Omit<PromiseWrapper<T, TSuc, TFail, TErr, TLogin, TTime, Delete>, Delete> &
+    Promise<
+      ChainName['all'] extends THadCallWithNotInScope
+      ? TSuc | TFail | TErr | TLogin | TTime
+      : ChainName['withoutS'] extends THadCallWithNotInScope
+      ? TRes | TFail | TErr | TLogin | TTime
+      : ChainName['withoutF'] extends THadCallWithNotInScope
+      ? TSuc | TRes | TErr | TLogin | TTime
+      : ChainName['withoutE'] extends THadCallWithNotInScope
+      ? TSuc | TFail | TRes | TLogin | TTime
+      : ChainName['withoutL'] extends THadCallWithNotInScope
+      ? TSuc | TFail | TErr | TRes | TTime
+      : ChainName['withoutT'] extends THadCallWithNotInScope
+      ? TSuc | TFail | TErr | TLogin | TRes
+      : ChainName['withoutSF'] extends THadCallWithNotInScope
+      ? TRes | TErr | TLogin | TTime
+      : ChainName['withoutSE'] extends THadCallWithNotInScope
+      ? TRes | TFail | TLogin | TTime
+      : ChainName['withoutSL'] extends THadCallWithNotInScope
+      ? TRes | TFail | TErr | TTime
+      : ChainName['withoutST'] extends THadCallWithNotInScope
+      ? TRes | TFail | TErr | TLogin
+      : ChainName['withoutFE'] extends THadCallWithNotInScope
+      ? TSuc | TRes | TLogin | TTime
+      : ChainName['withoutFL'] extends THadCallWithNotInScope
+      ? TSuc | TRes | TErr | TTime
+      : ChainName['withoutFT'] extends THadCallWithNotInScope
+      ? TSuc | TRes | TErr | TLogin
+      : ChainName['withoutEL'] extends THadCallWithNotInScope
+      ? TSuc | TFail | TRes | TTime
+      : ChainName['withoutET'] extends THadCallWithNotInScope
+      ? TSuc | TFail | TRes | TLogin
+      : ChainName['withoutLT'] extends THadCallWithNotInScope
+      ? TSuc | TFail | TErr | TRes
+      : ChainName['withSF'] extends THadCallWithNotInScope
+      ? TSuc | TFail | TRes
+      : ChainName['withSE'] extends THadCallWithNotInScope
+      ? TSuc | TErr | TRes
+      : ChainName['withSL'] extends THadCallWithNotInScope
+      ? TSuc | TLogin | TRes
+      : ChainName['withST'] extends THadCallWithNotInScope
+      ? TSuc | TTime | TRes
+      : ChainName['withFE'] extends THadCallWithNotInScope
+      ? TFail | TErr | TRes
+      : ChainName['withFL'] extends THadCallWithNotInScope
+      ? TFail | TLogin | TRes
+      : ChainName['withFT'] extends THadCallWithNotInScope
+      ? TFail | TTime | TRes
+      : ChainName['withEL'] extends THadCallWithNotInScope
+      ? TErr | TLogin | TRes
+      : ChainName['withET'] extends THadCallWithNotInScope
+      ? TErr | TTime | TRes
+      : ChainName['withLT'] extends THadCallWithNotInScope
+      ? TLogin | TTime | TRes
+      : ChainName['success'] extends THadCallWithNotInScope
+      ? TSuc | TRes
+      : ChainName['failure'] extends THadCallWithNotInScope
+      ? TFail | TRes
+      : ChainName['error'] extends THadCallWithNotInScope
+      ? TErr | TRes
+      : ChainName['login'] extends THadCallWithNotInScope
+      ? TLogin | TRes
+      : ChainName['timeout'] extends THadCallWithNotInScope
+      ? TTime | TRes
+      : TRes
+    >;
 }
 
+class ResponsePromise<T = any> {
+  public _success: Parameters<PromiseWrapper<T>['success']>[0];
+
+  public _failure: Parameters<PromiseWrapper<T>['failure']>[0];
+
+  public _error: Parameters<PromiseWrapper<T>['error']>[0];
+
+  public _login: Parameters<PromiseWrapper<T>['login']>[0];
+
+  public _timeout: Parameters<PromiseWrapper<T>['timeout']>[0];
+
+  public _rest?: Parameters<PromiseWrapper<T>['rest']>[0];
+
+  public _resolve?: ((value: any) => void);
+
+  public _reject?: ((reason?: any) => void);
+
+  public promiseWrapper: PromiseWrapper<T> & Promise<T>;
+
+  public _restScope: RestScope;
+
+  constructor(logger: InstanceType<typeof Logger>) {
+    this.promiseWrapper = new Promise<T>((resolve, reject) => {
+      this._resolve = resolve;
+      this._reject = reject;
+    }) as any;
+
+    this._restScope = ['success', 'failure', 'error', 'login', 'timeout'];
+
+    for (let i = 0; i < this._restScope.length; i++) {
+      const method = this._restScope[i];
+      this.promiseWrapper[method] = _callback => {
+        // @ts-ignore
+        if (typeof _callback === 'function') this[`_${method}`] = _callback;
+        const wrapper = this.promiseWrapper as any;
+        delete wrapper[method];
+        const methods = this._restScope.slice();
+        methods.splice(methods.indexOf(method), 1);
+        if (methods.every(_m => !wrapper[_m])) delete wrapper.rest;
+        return wrapper;
+      };
+    }
+
+    this.promiseWrapper.rest = (onRest, scope) => {
+      // @ts-ignore
+      if (typeof onRest === 'function') this._rest = onRest;
+      const wrapper = this.promiseWrapper as any;
+      delete wrapper.rest;
+      this._restScope = scope || this._restScope;
+      if (this._restScope.length === 0) {
+        logger.warn('The ".rest(cb, scope)" scope is empty and will never be triggered!');
+      } else {
+        let deletedCounter = 0;
+        this._restScope.forEach(method => {
+          if (wrapper[method]) {
+            delete wrapper[method];
+          } else {
+            deletedCounter++;
+          }
+        });
+        if (deletedCounter === this._restScope.length) {
+          logger.warn(
+            `The "${this._restScope.join(
+              ', ',
+            )}" had been called and the "rest" will never be triggered!`,
+          );
+        }
+      }
+      return wrapper;
+    };
+  }
+}
 
 export class Request {
   private _logger: Logger;
@@ -89,7 +373,7 @@ export class Request {
 
   public axios: AxiosStatic;
 
-  constructor (config?: InitConfig) {
+  constructor(config?: InitConfig) {
     const { debug = false, logLevel = 'warn' } = config || {};
     this._logger = new Logger({
       logPrefix: 'AJAX-MAKER',
@@ -99,6 +383,7 @@ export class Request {
     this._config = config || {};
 
     this.axios = axios;
+    this.parseError = this.parseError.bind(this);
     this.setting = this.setting.bind(this);
     this.request = this.request.bind(this);
   }
@@ -116,173 +401,219 @@ export class Request {
     };
   }
 
-  private _constructPromise<T> () {
-    let promiseRes: any;
-    let promiseRej: any;
-    const promiseWrapper: PromiseWrapper<T> & Promise<T> = new Promise<T>((resolve, reject) => {
-      promiseRes = resolve;
-      promiseRej = reject;
-    }) as any;
-
-    const callbacks = {
-      success: void 0 as any,
-      fail: void 0 as any,
-      error: void 0 as any,
-      login: void 0 as any,
-      rest: void 0 as any
-    } as {
-      success?: Parameters<PromiseWrapper<T>['success']>[0];
-      fail?: Parameters<PromiseWrapper<T>['fail']>[0];
-      login?: Parameters<PromiseWrapper<T>['login']>[0];
-      error?: Parameters<PromiseWrapper<T>['error']>[0];
-      rest?: Parameters<PromiseWrapper<T>['rest']>[0];
-    };
-
-    promiseWrapper.success = onSuccess => {
-      callbacks.success = onSuccess;
-      const wrapper = promiseWrapper as any;
-      delete wrapper.success;
-      if (!wrapper.fail && !wrapper.error && !wrapper.login) {
-        delete wrapper.rest;
-      }
-      return wrapper;
-    };
-
-    promiseWrapper.fail = onFail => {
-      callbacks.fail = onFail;
-      const wrapper = promiseWrapper as any;
-      delete wrapper.fail;
-      if (!wrapper.success && !wrapper.error && !wrapper.login) {
-        delete wrapper.rest;
-      }
-      return wrapper;
-    };
-
-    promiseWrapper.error = onError => {
-      callbacks.error = onError;
-      const wrapper = promiseWrapper as any;
-      delete wrapper.error;
-      if (!wrapper.success && !wrapper.fail && !wrapper.login) {
-        delete wrapper.rest;
-      }
-      return wrapper;
-    };
-
-    promiseWrapper.login = onLogin => {
-      callbacks.login = onLogin;
-      const wrapper = promiseWrapper as any;
-      delete wrapper.login;
-      if (!wrapper.success && !wrapper.fail && !wrapper.error) {
-        delete wrapper.rest;
-      }
-      return wrapper;
-    };
-
-    promiseWrapper.rest = onRest => {
-      callbacks.rest = onRest;
-      const wrapper = promiseWrapper as any;
-      delete wrapper.rest;
-      if (wrapper.success) delete wrapper.success;
-      if (wrapper.fail) delete wrapper.fail;
-      if (wrapper.error) delete wrapper.error;
-      if (wrapper.login) delete wrapper.login;
-      return wrapper;
-    };
-
-    return {
-      promiseWrapper,
-      promiseRes,
-      promiseRej,
-      callbacks
-    };
-  }
-
-  public setting (config: InitConfig) {
+  public setting(config: InitConfig) {
     if (!config) return this._logger.logWarn('setting method required correct parameters!');
     this._config = { ...this._config, ...config };
   }
 
-  public request <T>(options: Options<T>): PromiseWrapper<T> & Promise<T | ParseError> {
+  public request<T>(options: Options<T>): PromiseWrapper<T> & Promise<T | ParsedError> {
     options.withCredentials = typeof options.withCredentials === 'boolean' ? options.withCredentials : true;
     options.headers = options.headers || {};
     options.headers['Accept'] = options.headers['Accept'] || '*/*';
     const {
-      onSuccess: initSuccess,
-      onFail: initFail,
-      onLogin: initLogin,
-      onError: initError,
+      onSuccess: initOnSuccess,
+      onFailure: initOnFailure,
+      onLogin: initOnLogin,
+      onError: initOnError,
+      onTimeout: initOnTimeout,
       isSuccess: initIsSuccess,
       isLogin: initIsLogin,
+      timeout: initTimeout,
     } = this._config;
-    const { onSuccess, onFail, onLogin, onError, isSuccess, isLogin } = options;
-
     const {
-      promiseWrapper,
-      promiseRes,
-      promiseRej,
-      callbacks: cb
-    } = this._constructPromise<T>();
-
+      onSuccess,
+      onFailure,
+      onLogin,
+      onError,
+      onTimeout,
+      isSuccess,
+      isLogin,
+      timeout,
+    } = options;
     const rules = {
       success: isSuccess ?? initIsSuccess,
       login: isLogin ?? initIsLogin,
     };
 
-    this.axios(options).then(async response => {
-      try {
-        const { status, data, headers } = response;
-  
-        const callbacks = {
-          success: cb.success ?? cb.rest ?? onSuccess ?? initSuccess ?? ((v: T) => v),
-          fail: cb.fail ?? cb.rest ?? onFail ?? initFail ?? ((v: T) => v),
-          login: cb.login ?? cb.rest ?? onLogin ?? initLogin ?? ((v: T) => v)
-        };
+    const ResPromise = new ResponsePromise<T>(this._logger);
 
-        const doSuccess = rules.success?.(data, status, headers);
-        const doLogin = rules.login?.(data, status, headers);
-  
-        let res = data;
-        if (doLogin) {
-          res = await Promise.resolve(callbacks.login(res, headers));
-        } else if (doSuccess) {
-          res = await Promise.resolve(callbacks.success(res, headers));
-        } else {
-          res = await Promise.resolve(callbacks.fail(res, headers));
-        }
-        
-        promiseRes(res);
-      } catch (e) {
-        promiseRej(this.parseError(e));
-      }
-    }).catch(async (err: AxiosError<any>) => {
-      this._logger.logErr(`Error - ${err}`);
-
+    Promise.resolve().then(() => {
       const callbacks = {
-        login: cb.login ?? cb.rest ?? onLogin ?? initLogin ?? ((v: T) => v),
-        error: cb.error ?? cb.rest ?? onError ?? initError ?? ((e: ParseError) => e)
+        success:
+          ResPromise._success ??
+          (~ResPromise._restScope.indexOf('success') ? ResPromise._rest : undefined) ??
+          onSuccess ??
+          initOnSuccess ??
+          ((r: T, h: AxiosResHeaders) => r),
+        fail:
+          ResPromise._failure ??
+          (~ResPromise._restScope.indexOf('failure') ? ResPromise._rest : undefined) ??
+          onFailure ??
+          initOnFailure ??
+          ((v: T, h: AxiosResHeaders) => v),
+        error:
+          ResPromise._error ??
+          (~ResPromise._restScope.indexOf('error') ? ResPromise._rest : undefined) ??
+          onError ??
+          initOnError ??
+          ((v: T, h: AxiosResHeaders) => v),
+        login:
+          ResPromise._login ??
+          (~ResPromise._restScope.indexOf('login') ? ResPromise._rest : undefined) ??
+          onLogin ??
+          initOnLogin ??
+          ((v: T, h: AxiosResHeaders) => v),
+        timeout:
+          ResPromise._timeout ??
+          (~ResPromise._restScope.indexOf('timeout') ? ResPromise._rest : undefined) ??
+          onTimeout ??
+          initOnTimeout ??
+          ((v: T, h: AxiosReqHeaders) => v),
       };
 
-      const status = err.response?.status;
-      const data = err.response?.data;
-      const headers = err.response?.headers ?? {};
-      const doLogin = rules.login?.(data, status ?? 500, headers);
+      const existedHandler = {
+        success: !!(
+          ResPromise._success ||
+          (ResPromise._rest && ~ResPromise._restScope.indexOf('success')) ||
+          onSuccess ||
+          initOnSuccess
+        ),
+        failure: !!(
+          ResPromise._failure ||
+          (ResPromise._rest && ~ResPromise._restScope.indexOf('failure')) ||
+          onFailure ||
+          initOnFailure
+        ),
+        login: !!(
+          ResPromise._login ||
+          (ResPromise._rest && ~ResPromise._restScope.indexOf('login')) ||
+          onLogin ||
+          initOnLogin
+        ),
+        error: !!(
+          ResPromise._error ||
+          (ResPromise._rest && ~ResPromise._restScope.indexOf('error')) ||
+          onError ||
+          initOnError
+        ),
+        timeout: !!(
+          ResPromise._timeout ||
+          (ResPromise._rest && ~ResPromise._restScope.indexOf('timeout')) ||
+          onTimeout ||
+          initOnTimeout
+        ),
+      };
 
-      try {
-        let res = data;
-        if (doLogin) {
-          res = await Promise.resolve(callbacks.login(res, headers));
-          promiseRes(res);
-        } else {
-          res = await Promise.resolve(callbacks.error(this.parseError(err), headers));
-          const hasChainHandler = !!(cb.error || cb.rest);
-          hasChainHandler ? promiseRes(res) : promiseRej(res);
+      const existedChainHandler = {
+        success: !!(
+          ResPromise._success ||
+          (ResPromise._rest && ~ResPromise._restScope.indexOf('success'))
+        ),
+        failure: !!(
+          ResPromise._failure ||
+          (ResPromise._rest && ~ResPromise._restScope.indexOf('failure'))
+        ),
+        login: !!(
+          ResPromise._login ||
+          (ResPromise._rest && ~ResPromise._restScope.indexOf('login'))
+        ),
+        error: !!(
+          ResPromise._error ||
+          (ResPromise._rest && ~ResPromise._restScope.indexOf('error'))
+        ),
+        timeout: !!(
+          ResPromise._timeout ||
+          (ResPromise._rest && ~ResPromise._restScope.indexOf('timeout'))
+        ),
+      };
+
+      const errorHandler = async (e: any, headers: AxiosReqHeaders | AxiosResHeaders) => {
+        try {
+          let err = this.parseError(e);
+          // @ts-ignore
+          const result = await Promise.resolve(callbacks.error(err, headers));
+          if (existedChainHandler.error) err = result;
+          existedHandler.error ? ResPromise._resolve!(err) : ResPromise._reject!(err);
+        } catch (_e) {
+          ResPromise._reject!(this.parseError(_e));
         }
-      } catch (e) {
-        promiseRej(this.parseError(e));
+      };
+
+      let timer: null | NodeJS.Timeout = null;
+      let isTimeout = false;
+      const _timeout = timeout ?? initTimeout;
+      if (_timeout) {
+        timer = setTimeout(async () => {
+          try {
+            isTimeout = true;
+            timer = null;
+            let err = this.parseError('timeout') as ParsedError<'timeout'>;
+            // @ts-ignore
+            const res = await Promise.resolve(callbacks.timeout(err, options.headers ?? {}));
+            if (existedChainHandler.timeout) err = res;
+            existedHandler.timeout ? ResPromise._resolve!(err) : ResPromise._reject!(err);
+          } catch (e) {
+            errorHandler(e, options.headers ?? {});
+          }
+        }, _timeout);
       }
+
+      this.axios<any, AxiosResponse<T, any>, any>(options).then(async response => {
+        if (isTimeout) return;
+        if (timer !== null) {
+          clearTimeout(timer);
+          timer = null;
+        }
+
+        const { status, data, headers } = response;
+        try {
+          const doSuccess = rules.success?.(data, status, headers);
+          const doLogin = rules.login?.(data, status, headers);
+
+          let res = data;
+          if (doLogin) {
+            const result = await Promise.resolve(callbacks.login(data, headers));
+            if (existedChainHandler.login) res = result;
+          } else if (doSuccess) {
+            const result = await Promise.resolve(callbacks.success(data, headers));
+            if (existedChainHandler.success) res = result;
+          } else {
+            const result = await Promise.resolve(callbacks.fail(data, headers));
+            if (existedChainHandler.failure) res = result;
+          }
+          ResPromise._resolve!(res);
+        } catch (e) {
+          errorHandler(e, headers);
+        }
+      }).catch(async (err: AxiosError<any>) => {
+        if (isTimeout) return;
+        if (timer !== null) {
+          clearTimeout(timer);
+          timer = null;
+        }
+
+        this._logger.logErr(`Error - ${err}`);
+
+        const status = err.response?.status;
+        const data = err.response?.data;
+        const headers = err.response?.headers ?? {};
+        const doLogin = rules.login?.(data, status ?? 500, headers);
+
+        try {
+          let res = data;
+          if (doLogin) {
+            res = await Promise.resolve(callbacks.login(res, headers));
+            ResPromise._resolve!(res);
+          } else {
+            errorHandler(err, headers);
+          }
+        } catch (e) {
+          errorHandler(err, headers);
+        }
+      });
     });
 
-    return promiseWrapper;
+    return ResPromise.promiseWrapper;
   }
 }
 

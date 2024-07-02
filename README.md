@@ -8,23 +8,34 @@
 ## API
 ```ts
   import Request from 'ajax-maker';
-  import type { RawAxiosResponseHeaders, AxiosResponseHeaders } from 'axios';
+  import type { RawAxiosRequestHeaders, AxiosRequestHeaders, RawAxiosResponseHeaders, AxiosResponseHeaders } from 'axios';
+
+  type AxiosReqHeaders = RawAxiosRequestHeaders | AxiosRequestHeaders;
+  type AxiosResHeaders = RawAxiosResponseHeaders | AxiosResponseHeaders;
+  type ParsedError<T extends string = string> = {
+    name: T;
+    message: string;
+    stack: string;
+  };
 
   interface InitConfig<T = any> {
-    onSuccess?: (res: T, headers: RawAxiosResponseHeaders | AxiosResponseHeaders) => any;
-    onFail?: (res: T, headers: RawAxiosResponseHeaders | AxiosResponseHeaders) => any;
-    onLogin?: (res: T, headers: RawAxiosResponseHeaders | AxiosResponseHeaders) => any;
-    onError?: (res: ParseError, headers: RawAxiosResponseHeaders | AxiosResponseHeaders) => any;
-    isSuccess?: (res: T, status: number, headers: RawAxiosResponseHeaders | AxiosResponseHeaders) => boolean;
-    isLogin?: (res: T, status: number, headers: RawAxiosResponseHeaders | AxiosResponseHeaders) => boolean;
+    onSuccess?: (res: T, headers: AxiosResHeaders) => any;
+    onFailure?: (res: T, headers: AxiosResHeaders) => any;
+    onLogin?: (res: T, headers: AxiosResHeaders) => any;
+    onError?: (res: ParsedError, headers: AxiosReqHeaders | AxiosResHeaders) => any;
+    onTimeout?: (e: ParsedError<'timeout'>, headers: AxiosReqHeaders) => any;
+    isSuccess?: (res: T, status: number, headers: AxiosResHeaders) => boolean;
+    isLogin?: (res: T, status: number, headers: AxiosResHeaders) => boolean;
+    timeout?: number;
     debug?: boolean;
     logLevel?: TlogLevelStr;
   }
 
   const onSuccess = res => console.log('init success', res);
-  const onFail = res => console.log('init fail', res);
+  const onFailure = res => console.log('init failure', res);
   const onError = res => console.log('init error', res);
   const onLogin = res => console.log('init login', res);
+  const onTimeout = res => console.log('init timeout', res);
 
   // initialize instance
   // axios is AxiosStatic
@@ -32,9 +43,10 @@
     isSuccess: (res, status, headers) => res.code === 0,
     isLogin: (res, status, headers) => res.code === 50,
     onSuccess,
-    onFail,
+    onFailure,
     onError,
-    onLogin
+    onLogin,
+    onTimeout
   });
 
   // method 1 with init callbacks
@@ -53,9 +65,10 @@
       baseUrl: `https://api.com/getMessage`,
       method: 'get',
       onSuccess: res => console.log(res),
-      onFail(res => console.log(res)),
+      onFailure(res => console.log(res)),
       onError: res => console.log(res),
       onLogin: err => console.error(err),
+      onTimeout: err => console.error(err),
       isLogin: (res, status, headers) => status === 401
     }
   )
@@ -69,8 +82,9 @@
   )
   .success(res => console.log(res))
   .login(res => console.log(res))
-  .fail(res => console.log(res))
+  .failure(res => console.log(res))
   .error(err => console.error(err))
+  .timeout(err => console.error(err))
 
   // method 4 with rest api
   request(
@@ -81,7 +95,20 @@
     }
   )
   .success(res => console.log('success', res))
-  .rest(res => console.log('rest', res))
+  .rest(res => console.log('rest', res));
+
+  // method 5 rest with scope
+  request(
+    {
+      baseUrl: `https://api.com/getMessage`,
+      method: 'get',
+      isSuccess: (res, status) => status === 200
+    }
+  )
+  .success(res => console.log('success', res))
+  .login(res => console.log('login', res))
+  .timeout(err => console.error('timeout', err))
+  .rest(res => console.log('rest', res), ['failure', 'error']);
 
   // dynamic setting
   setting({

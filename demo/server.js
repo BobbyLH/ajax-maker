@@ -16,9 +16,13 @@ app.use(require('body-parser').urlencoded({ extended: false }))
 
 app.use(bodyParser.json())
 
-app.post('/api', function (req, res, next) {
+app.post('/api', async function (req, res, next) {
   console.info('Request: ', req.path, req.body.code);
   const isErr = req.body.code == 500;
+  const isTimeout = req.body.code == 501;
+  if (isTimeout) {
+    await new Promise((resolve) => setTimeout(() => resolve(null), 5000));
+  }
   res.status(isErr ? 500 : 200).send(isErr ? 'Internal Error' : {
     data: {
       token: req.body.token,
