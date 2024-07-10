@@ -102,7 +102,7 @@ export type ErrorRes = {
 
 export type RestScopeName = ChainName['all'];
 
-export type RestScope = RestScopeName[];
+export type RestScope = Readonly<[RestScopeName, RestScopeName?, RestScopeName?, RestScopeName?, RestScopeName?]>;
 
 type Tuple2Record<T extends readonly any[]> = {
   [Value in T[number]]: Value
@@ -155,7 +155,7 @@ export interface PromiseWrapper<
   rest<
     TRes = TSuc | TFail | TErr | TLogin | TTime,
     TRestScope extends RestScope = ['success', 'failure', 'login', 'error', 'timeout'],
-    TRestScopeName extends RestScopeName = keyof Tuple2Record<TRestScope>,
+    TRestScopeName extends RestScopeName = Exclude<keyof Tuple2Record<TRestScope>, undefined>,
     THadCallWithNotInScope extends string = HadCall | Exclude<RestScopeName, TRestScopeName>,
     Delete extends string = HadCall | TRestScopeName | 'rest'
   >(
@@ -325,6 +325,7 @@ class ResponsePromise<T = any> {
 
     for (let i = 0; i < this._restScope.length; i++) {
       const method = this._restScope[i];
+      if (!method) continue;
       this.promiseWrapper[method] = _callback => {
         // @ts-ignore
         if (typeof _callback === 'function') this[`_${method}`] = _callback;
@@ -332,7 +333,7 @@ class ResponsePromise<T = any> {
         delete wrapper[method];
         const methods = this._restScope.slice();
         methods.splice(methods.indexOf(method), 1);
-        if (methods.every(_m => !wrapper[_m])) delete wrapper.rest;
+        if (methods.every(_m => !!_m && !wrapper[_m])) delete wrapper.rest;
         return wrapper;
       };
     }
@@ -343,11 +344,13 @@ class ResponsePromise<T = any> {
       const wrapper = this.promiseWrapper as any;
       delete wrapper.rest;
       this._restScope = scope || this._restScope;
+      // @ts-ignore
       if (this._restScope.length === 0) {
         logger.warn('The ".rest(cb, scope)" scope is empty and will never be triggered!');
       } else {
         let deletedCounter = 0;
         this._restScope.forEach(method => {
+          if (!method) return;
           if (wrapper[method]) {
             delete wrapper[method];
           } else {
