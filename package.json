@@ -1,6 +1,6 @@
 {
   "name": "ajax-maker",
-  "version": "1.2.3",
+  "version": "1.2.4",
   "description": "ajax request library base on axios",
   "main": "dist/index.js",
   "scripts": {
@@ -49,5 +49,6 @@
   },
   "peerDependencies": {
     "axios": "^1.7.2"
-  }
+  },
+  "packageManager": "pnpm@8.6.10+sha1.98fe2755061026799bfa30e7dc8d6d48e9c3edf0"
 }
