@@ -14,7 +14,7 @@ export type CheckNever<T> = T extends never ? true : false;
 
 export type CheckAny<T> = CheckNever<T> extends false ? false : true;
 
-export type WithFailData<T = undefined> = T extends null ? null | undefined : T | null | undefined;
+export type WithFailureData<T = undefined> = T extends null ? null | undefined : T | null | undefined;
 
 export interface ChainName {
   // eslint-disable-next-line max-len
@@ -57,12 +57,12 @@ export interface ChainName {
 
 export interface ChainReturn<T> {
   success: T;
-  failure: T;
+  failure: WithFailureData | ParsedError;
   error: ParsedError;
-  login: T;
+  login: WithFailureData | ParsedError;
   timeout: ParsedError<'timeout'>;
-  successOrFailure: T;
-  all: T | ParsedError | ParsedError<'timeout'>;
+  successOrFailure: WithFailureData<T>;
+  all: WithFailureData<T> | ParsedError | ParsedError<'timeout'>;
 }
 
 export type AxiosReqHeaders = RawAxiosRequestHeaders | AxiosRequestHeaders;
@@ -124,7 +124,7 @@ export interface PromiseWrapper<
     ChainName['withoutS'] extends HadCall ? Delete | 'rest' : Delete
   > &
     Promise<TRes | TFail | TErr | TLogin | TTime>;
-  failure<TRes = TFail, Delete extends string = HadCall | 'fail'>(
+  failure<TRes = TFail, Delete extends string = HadCall | 'failure'>(
     onFailure?: (res: ChainReturn<T>['failure'], headers: AxiosResHeaders) => TRes,
   ): Omit<
     PromiseWrapper<T, TSuc, TRes, TErr, TLogin, TTime, Delete>,
@@ -448,7 +448,7 @@ export class Request {
           onSuccess ??
           initOnSuccess ??
           ((r: T, h: AxiosResHeaders) => r),
-        fail:
+        failure:
           ResPromise._failure ??
           (~ResPromise._restScope.indexOf('failure') ? ResPromise._rest : undefined) ??
           onFailure ??
@@ -575,13 +575,13 @@ export class Request {
 
           let res = data;
           if (doLogin) {
-            const result = await Promise.resolve(callbacks.login(data, headers));
+            const result = await Promise.resolve(callbacks.login({ ...this.parseError('need login'), ...data }, headers));
             if (existedChainHandler.login) res = result;
           } else if (doSuccess) {
             const result = await Promise.resolve(callbacks.success(data, headers));
             if (existedChainHandler.success) res = result;
           } else {
-            const result = await Promise.resolve(callbacks.fail(data, headers));
+            const result = await Promise.resolve(callbacks.failure({ ...this.parseError('request failed'), ...data }, headers));
             if (existedChainHandler.failure) res = result;
           }
           ResPromise._resolve!(res);
